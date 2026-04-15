@@ -21,6 +21,7 @@
 | 15 | `graph_ir_v1.0.yaml` | 1.0 | **Confirmed** | **Single Source of Truth** |
 | 16 | `docs/specs/shared_domain_types_v1.0.md` | 1.0 | **Draft** | 공용 도메인 타입 canonical 정의 |
 | 17 | `docs/specs/architecture_review_patch_v1.0.md` | 1.0 | **Draft** | W1/W2/W3 해결 패치 |
+| 18 | `docs/specs/path_reinforcement_v1.0.md` | 1.0 | **Draft** | 경로 분석 보강 (R1~R6) |
 
 ## Design Progression
 
@@ -37,19 +38,21 @@
      ↓
 [Confirmed] Graph IR YAML (Single Source of Truth)
      ↓
-[Draft] Architecture Review Patch (W1/W2/W3 + I1)    ← NEW
+[Draft] Architecture Review Patch (W1/W2/W3 + I1)
+     ↓
+[Draft] Path Reinforcement (R1~R6 보강)              ← NEW
      ↓
 [Next] 구현 시작 (Claude Code) — core/domain/ → Ports → Adapters
 ```
 
-## Architecture Summary (Post-Review)
+## Architecture Summary (Post-Reinforcement)
 
 ```
-6 Paths | 43 Nodes | 36 Ports | 192 Methods | 88 Domain Types
-86 Edges | 8 Shared Stores + 1 Redis Cache | 34 Tables | 34 Adapters
-35 Validation Rules | 7 Contract Patterns
+6 Paths | 43 Nodes | 36 Ports | 192 Methods | 91 Domain Types
+89 Edges | 8 Shared Stores + 1 Redis Cache | 34 Tables | 34 Adapters
+39 Validation Rules | 7 Contract Patterns
 5 Agent Nodes (LangGraph) | 31 L0 Nodes (72% deterministic)
-13 Cross-Path Sync Edges (W1 해결로 14→13)
+13 Cross-Path Sync Edges | TradingContext E2E chain enforcement
 ```
 
 ## Architecture Review 결과 요약
