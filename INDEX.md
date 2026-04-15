@@ -17,6 +17,7 @@
 | 11 | `docs/specs/system_manifest_v1.0.md` | 1.0 | **Draft** | 43노드 통합 레지스트리 |
 | 12 | `docs/blueprints/node_blueprint_path1_v1.0.md` | 1.0 | **Draft** | Path 1: 13노드 내부 상세 |
 | 13 | `docs/blueprints/node_blueprint_path2to6_v1.0.md` | 1.0 | **Draft** | Path 2~6: 30노드 내부 상세 |
+| 14 | `docs/specs/shared_store_ddl_v1.0.md` | 1.0 | **Draft** | 8 Stores, 34 Tables, DDL 통합 |
 
 ## Design Progression
 
@@ -27,9 +28,9 @@
      ↓
 [Draft] Edge Contract (84 Edges) + Order Lifecycle Spec
      ↓
-[Draft] System Manifest (43 nodes 통합) + Node Blueprint (43 nodes 상세)  ← CURRENT
+[Draft] System Manifest + Node Blueprint (43 nodes)
      ↓
-[Next] Shared Store DDL 통합 (8개 Store)
+[Draft] Shared Store DDL (8 Stores, 34 Tables)  ← CURRENT
      ↓
 [Next] Graph IR YAML (Single Source of Truth)
      ↓
@@ -40,6 +41,6 @@
 
 ```
 6 Paths | 43 Nodes | 36 Ports | 192 Methods | 86 Domain Types
-84 Edges | 8 Shared Stores | 34 Adapters | 31 Validation Rules
+84 Edges | 8 Shared Stores | 34 Tables | 34 Adapters | 31 Validation Rules
 5 Agent Nodes (LangGraph) | 31 L0 Nodes (72% deterministic)
 ```
