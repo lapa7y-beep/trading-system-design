@@ -13,8 +13,10 @@
 | 7 | `docs/port_interface_path5_v1.0.md` | 1.0 | **Confirmed** | Path 5: Watchdog, 5 Ports |
 | 8 | `docs/port_interface_path6_v1.0.md` | 1.0 | **Draft** | Path 6: Market Intel, 5 Ports |
 | 9 | `docs/specs/edge_contract_definition_v1.0.md` | 1.0 | **Draft** | 84 Edges + Trading Safety Contract |
-| 10 | `docs/specs/order_lifecycle_spec_v1.0.md` | 1.0 | **Draft** | OrderFSM + BrokerPort 확장 + 에러 처리 |
-| 11 | `docs/specs/system_manifest_v1.0.md` | 1.0 | **Draft** | 43노드 + 36포트 + 8스토어 통합 레지스트리 |
+| 10 | `docs/specs/order_lifecycle_spec_v1.0.md` | 1.0 | **Draft** | OrderFSM + BrokerPort 확장 |
+| 11 | `docs/specs/system_manifest_v1.0.md` | 1.0 | **Draft** | 43노드 통합 레지스트리 |
+| 12 | `docs/blueprints/node_blueprint_path1_v1.0.md` | 1.0 | **Draft** | Path 1: 13노드 내부 상세 |
+| 13 | `docs/blueprints/node_blueprint_path2to6_v1.0.md` | 1.0 | **Draft** | Path 2~6: 30노드 내부 상세 |
 
 ## Design Progression
 
@@ -25,13 +27,13 @@
      ↓
 [Draft] Edge Contract (84 Edges) + Order Lifecycle Spec
      ↓
-[Draft] System Manifest — 전체 통합 레지스트리 ← CURRENT
+[Draft] System Manifest (43 nodes 통합) + Node Blueprint (43 nodes 상세)  ← CURRENT
      ↓
-[Next] Node Blueprint Catalog — 43개 노드 내부 상세
+[Next] Shared Store DDL 통합 (8개 Store)
      ↓
-[Planned] Pipeline 상세 → Shared Store DDL 통합 → Graph IR YAML
+[Next] Graph IR YAML (Single Source of Truth)
      ↓
-[Planned] 구현 시작 (Claude Code)
+[Then] 구현 시작 (Claude Code)
 ```
 
 ## Architecture Summary
