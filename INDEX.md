@@ -7,13 +7,19 @@
 | 1 | `docs/boundary_definition_v1.0.docx` | 1.0 | **Confirmed** | 경계 정의서 + LLM 역할 매트릭스 |
 | 2 | `docs/boundary_definition_v1.0.md` | 1.0 | **Confirmed** | 위 문서의 Markdown 버전 |
 | 3 | `docs/specs/graph_ir_agent_extension_v1.0.md` | 1.0 | **Confirmed** | Graph IR 확장: runMode:agent + agent_spec + LLMPort |
-| 4 | `docs/port_interface_path1_v1.0.md` | 1.0 | **Confirmed** | Path 1B(매매실행) 4 Ports, 6 Domain Types |
+| 4 | `docs/port_interface_path1_v2.0.md` | 2.0 | **Draft** | Path 1 전체: 1A(종목선정)+1B(매매)+1C(포지션추적), 10 Ports |
 | 5 | `docs/port_interface_path2_v1.0.md` | 1.0 | **Confirmed** | Path 2(Knowledge) 5 Ports, 8 Domain Types |
 | 6 | `docs/port_interface_path3_v1.0.md` | 1.0 | **Confirmed** | Path 3(Strategy) 5 Ports, 10 Domain Types |
 | 7 | `docs/port_interface_path4_v1.0.md` | 1.0 | **Confirmed** | Path 4(Portfolio) 5 Ports, 12 Domain Types |
 | 8 | `docs/port_interface_path5_v1.0.md` | 1.0 | **Confirmed** | Path 5(Watchdog) 5 Ports, 14 Domain Types |
 | 9 | `docs/specs/edge_contract_definition_v1.0.md` | 1.0 | **Draft** | 68개 Edge 통합 스키마 + Trading Safety Contract |
-| 10 | `docs/port_interface_path1_extension_v1.0.md` | 1.0 | **Draft** | Path 1 확장: 종목선정(1A) + 포지션추적(1C) |
+
+## Deleted Documents
+
+| Document | Replaced By | Reason |
+|----------|-------------|--------|
+| `docs/port_interface_path1_v1.0.md` | `docs/port_interface_path1_v2.0.md` | v2.0에 병합 (SubPath 1B 부분) |
+| `docs/port_interface_path1_extension_v1.0.md` | `docs/port_interface_path1_v2.0.md` | v2.0에 병합 (SubPath 1A/1C 부분) |
 
 ## Design Progression
 
@@ -25,8 +31,6 @@
 [Confirmed] Port Interface × 5 Paths (31 Ports, 62 Domain Types)
      ↓
 [Draft] Edge Contract Definition (68 Edges, 5 Contract Patterns)
-     ↓
-[Draft] Path 1 Extension: Universe & Position Tracking (+6 Nodes, +14 Edges)
      ↓
 [Next] System Manifest — 전체 노드(~38개) + Port(31개) + Edge(68개) 통합
      ↓
@@ -73,7 +77,8 @@
 | 2026-04-15 | Task Router — 노드별 모델 분기 | 비용/품질/속도 균형 |
 | 2026-04-15 | Agent 노드 6개 확정 | Path 1,5는 deterministic 고정 (immutable) |
 | 2026-04-15 | Validation 규칙 9개 추가 (V-AGENT-*) | agent 노드 설계 오류 조기 감지 |
-| 2026-04-15 | **Path 1 SubPath 분할 (1A/1B/1C)** | **종목선정→매매→포지션추적 생명주기 완결** |
-| 2026-04-15 | **WatchlistStore 신설 (7번째 Store)** | **종목 상태 전이 영속화** |
-| 2026-04-15 | **종목 상태 8단계 생명주기** | **CANDIDATE→WATCHING→ENTRY→IN_POSITION→EXIT→CLOSED→재감시/블랙리스트** |
-| 2026-04-15 | **Trading Safety Contract 최우선** | **E2E latency budget, stale price guard, circuit breaker, kill switch** |
+| 2026-04-15 | Path 1 SubPath 분할 (1A/1B/1C) | 종목선정→매매→포지션추적 생명주기 완결 |
+| 2026-04-15 | WatchlistStore 신설 (7번째 Store) | 종목 상태 전이 영속화 |
+| 2026-04-15 | 종목 상태 8단계 생명주기 | CANDIDATE→WATCHING→ENTRY→IN_POSITION→EXIT→CLOSED |
+| 2026-04-15 | Trading Safety Contract 최우선 | E2E latency budget, stale price guard, circuit breaker, kill switch |
+| 2026-04-15 | Path 1 v1.0+extension → v2.0 병합 | 단일 문서에서 종목 전체 생명주기 추적 |
