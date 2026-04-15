@@ -23,4 +23,4 @@ docs/
 
 ## 기술 스택
 
-Python 3.11+ / asyncio / FastAPI / transitions / pandas-ta / pydantic / PostgreSQL+TimescaleDB / Redis / ChromaDB / Docker Compose / Grafana / LiteGraph.js
+Python 3.11+ / asyncio / FastAPI / transitions / pandas-ta / pydantic / PostgreSQL+TimescaleDB / Redis / Docker Compose / Grafana / Telegram Bot / KIS Open API + Kiwoom REST API
