@@ -62,11 +62,16 @@ LLM이 절대 하지 않는 것: FSM 경로 중간 개입 / 실시간 주문 판
 
 ---
 
-### 2. 아키텍처 기반 문서 (docs/)
+### 2. 아키텍처 기반 문서 (docs/architecture/)
+
+오늘(2026-04-16) 확정된 내용을 기반으로 신규 작성.
 
 | 파일 | 내용 | 상태 |
 |------|------|------|
-| `docs/boundary_definition_v1.0.md` | LLM 역할 경계, L0/L1/L2 분류, Constrained Agent 원칙 | stable |
+| `docs/architecture/system-overview.md` | 전체 시스템 구조, 5개 Path, LLM 역할 3분리, Shared Store | stable |
+| `docs/architecture/fsm-design.md` | FSM 이중 레벨 (군 5상태 + 개별 13상태), 취약점 대응 | stable |
+| `docs/architecture/db-stack.md` | DB 스택 확정 (postgres+redis), 정형·비정형 저장 원칙 | stable |
+| `docs/boundary_definition_v1.0.md` | LLM 역할 경계, L0/L1/L2 분류, Constrained Agent 원칙 (이전 채팅 작성) | stable |
 
 ---
 
@@ -100,10 +105,22 @@ LLM이 절대 하지 않는 것: FSM 경로 중간 개입 / 실시간 주문 판
 | `docs/specs/architecture_deep_review_v1.0.md` | 6 Path 전체 재분석 — 취약점 5개·누락 8개·분기 4개 | draft |
 | `docs/specs/architecture_reinforcement_patch_v2.0.md` | 패치 v2.0 — 17개 패치 (KISAPIGateway, ApprovalGate, Boot/Shutdown 등) | draft |
 | `docs/specs/session_summary_20260416.md` | 2026-04-16 세션 전체 요약 | stable |
+| `docs/specs/llm-role.md` | LLM 역할 3분리 상세 + 대화 저장 구조 (오늘 신규) | stable |
 
 ---
 
-### 5. Node Blueprint (docs/blueprints/)
+### 5. 파이프라인 문서 (docs/pipelines/)
+
+오늘(2026-04-16) 확정된 내용을 기반으로 신규 작성.
+
+| 파일 | 내용 | 상태 |
+|------|------|------|
+| `docs/pipelines/data-collection.md` | 정형 수집 파이프라인 + IngestPort 플러그인 구조 | stable |
+| `docs/pipelines/backtesting.md` | 백테스팅 이중 엔진 + 포트폴리오 + 실전 전환 기준 | stable |
+
+---
+
+### 6. Node Blueprint (docs/blueprints/)
 
 | 파일 | 내용 | 상태 |
 |------|------|------|
@@ -112,7 +129,7 @@ LLM이 절대 하지 않는 것: FSM 경로 중간 개입 / 실시간 주문 판
 
 ---
 
-### 6. 설계 결정 기록 (docs/decisions/)
+### 7. 설계 결정 기록 (docs/decisions/)
 
 오늘(2026-04-16) 확정된 핵심 결정들.
 
