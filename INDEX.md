@@ -17,9 +17,22 @@ LLM은 advisor 역할만, 사람이 최종 승인, 실전 코드와 백테스트
 ### 시스템 성격
 
 - **반자동** — 신호 생성은 자동, 주문 실행은 사람 승인 후
-- **대화 기반 Agent 아님** — LLM은 시나리오 생성 보조와 데이터 해석만
+- **외부 인터페이스** — jdw 입장에서는 대화 기반 Agent처럼 보임
+- **내부 실행 엔진** — FSM이 제어. LLM은 FSM 내부에 개입하지 않음
 - **Telegram(S7)** — 운영 제어 인터페이스, 매매 판단 인터페이스 아님
 - **증권사** — KIS + Kiwoom 양쪽 (BrokerPort 어댑터 교체)
+
+### LLM 역할 3분리 (ADR-010)
+
+```
+LLM = 관제사 + 감시카메라  /  FSM = 신호 시스템(레일)  /  jdw = 최종 승인
+
+역할 1 — 활성화 판단 (LLM):  시나리오를 FSM에 넘길지 말지 결정
+역할 2 — 경로 실행 (FSM):    정해진 상태 전이 그대로 실행, LLM 개입 없음
+역할 3 — 감시·보고 (LLM):    전체 FSM 상태 파악 → jdw에게 보고·제안
+
+LLM이 절대 하지 않는 것: FSM 경로 중간 개입 / 실시간 주문 판단 / 경로 임의 변경
+```
 
 ### DB 스택 (ADR-006)
 
@@ -100,21 +113,21 @@ StrategyPort (인터페이스) — 교체 가능한 추상화
 ### LLM 저장·교차 검증 (ADR-009, 010)
 
 ```
-LLM 대화 저장:
+LLM 대화 저장 (Phase 3 구현):
   LangGraph StateGraph + PostgreSQL checkpointer
-  적용: Knowledge Building Path, Strategy Development Path LLM 노드만
-  저장: 대화이력, 중간추론, tool call 결과, context
+  적용: Knowledge·Strategy Path LLM 노드 + 감시·보고 LLM
+  저장: 대화이력, 중간추론, activation_log(FSM 넘김 이력), monitoring_log
 
-정형·비정형 교차 검증 (Phase 5):
-  이벤트 기반: 공시 전후 수치 변화 패턴
-  감성·수치 상관: 뉴스 감성 점수 ↔ RSI·수급 상관계수
-  시나리오 사전 검증: LLM 생성 시나리오 전제조건 과거 데이터 검증
-  결과는 참고 자료, 최종 판단은 사람
+정형·비정형 교차 검증 (현재 구현 불가):
+  전제: 정형+비정형 데이터 모두 수집·저장 중이어야 함
+  Phase 5 이후, 데이터 존재 확인 후 구현
+  유형: 이벤트 기반 / 감성-수치 상관 / 시나리오 사전 검증
 
-Code Generator:
-  PathCanvas(LiteGraph.js) → Graph IR YAML → Python 코드 자동 생성
-  구조만 생성 (포트, 연결, 실행 패턴), 비즈니스 로직은 사람 작성
-  구현 단계 2번 (초기 화면 설계 완료 후)
+Code Generator (구현 단계 2번):
+  전제: 노드 내부 명세 완전 확정 후 시작 가능
+  현재 노드 명세 미완성 → 시작 불가
+  PathCanvas → Graph IR YAML → Python 코드 자동 생성
+  구조만 생성, 비즈니스 로직은 사람 작성
 ```
 
 ---
