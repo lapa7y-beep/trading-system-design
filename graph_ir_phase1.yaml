@@ -1,0 +1,344 @@
+# ============================================================================
+# ATLAS Graph IR — Phase 1
+# ============================================================================
+# Version: 1.0
+# Created: 2026-04-16
+# Scope: docs/decisions/011-phase1-scope.md
+#
+# 이 파일은 Phase 1의 Single Source of Truth 다.
+# - Node / Edge / Port / Adapter 정의를 단일 문서에 집약
+# - 사람이 읽고 쓸 수 있음
+# - Phase 2+ 에서 Code Generator 도입 시 입력으로 사용 예정
+# - 현재 Phase 1은 "사람이 읽는 체크리스트 + 수동 검증 기준"
+# ============================================================================
+
+version: "1.0"
+phase: 1
+updated: "2026-04-16"
+
+# ---------------------------------------------------------------------------
+# 메타
+# ---------------------------------------------------------------------------
+meta:
+  scope_document: "docs/decisions/011-phase1-scope.md"
+  paths_active: ["path1"]
+  paths_deferred: ["path2", "path3", "path4", "path5", "path6"]
+  complexity_profile: "minimum_viable"
+
+# ---------------------------------------------------------------------------
+# Ports — 외부 의존성의 추상화
+# ---------------------------------------------------------------------------
+ports:
+  MarketDataPort:
+    methods: [subscribe, unsubscribe, get_current_price, get_historical]
+    adapters:
+      primary: KISWebSocketAdapter
+      fallback: KISRestAdapter
+      mock: CSVReplayAdapter
+
+  BrokerPort:
+    methods: [submit, cancel, get_order_status, get_account_balance]
+    adapters:
+      mock: MockBrokerAdapter
+      kis_paper: KISPaperBrokerAdapter
+      kis_live: KISLiveBrokerAdapter    # Phase 2 진입까지 사용 금지
+
+  StoragePort:
+    methods: [save_ohlcv, save_trade, update_position, load_position, save_pnl]
+    adapters:
+      primary: PostgresStorageAdapter
+      mock: InMemoryStorageAdapter     # 테스트용
+
+  ClockPort:
+    methods: [now, sleep, trading_hours_check]
+    adapters:
+      live: WallClockAdapter
+      backtest: HistoricalClockAdapter
+
+  StrategyRuntimePort:
+    methods: [load, evaluate, list]
+    adapters:
+      primary: FileSystemStrategyLoader    # strategies/*.py 로드
+
+  AuditPort:
+    methods: [log, query_recent, query_by_correlation]
+    adapters:
+      primary: PostgresAuditAdapter
+      mock: StdoutAuditAdapter             # 테스트용
+
+# ---------------------------------------------------------------------------
+# Shared Stores — Path 간 간접 연결 지점
+# ---------------------------------------------------------------------------
+shared_stores:
+  MarketDataStore:
+    port: StoragePort
+    tables: [market_ohlcv]
+    writers: [MarketDataReceiver]
+    readers: [IndicatorCalculator, backtest_cli]
+
+  PortfolioStore:
+    port: StoragePort
+    tables: [positions, trades, daily_pnl]
+    writers: [OrderExecutor, TradingFSM]
+    readers: [RiskGuard, StrategyEngine, cli_status]
+
+  AuditStore:
+    port: AuditPort
+    tables: [audit_events, order_tracker]
+    writers: [OrderExecutor, RiskGuard, TradingFSM, cli]
+    readers: [cli_audit, cli_orders]
+
+# ---------------------------------------------------------------------------
+# Nodes — Path 1 Phase 1 (6개)
+# ---------------------------------------------------------------------------
+nodes:
+
+  MarketDataReceiver:
+    path: path1
+    category: core
+    runMode: stream_with_poll_fallback
+    ports_used: [MarketDataPort]
+    inputs:
+      - type: config
+        from: "config/watchlist.yaml"
+        field: symbols
+    outputs:
+      - edge: quote_stream
+        type: DataFlow
+        to: IndicatorCalculator
+    state:
+      - connection_state: "CONNECTED | RECONNECTING | FALLBACK_POLL"
+    failure_policy:
+      - on_ws_fail_3x: "switch to poll mode"
+      - on_poll_fail: "emit audit_event severity=error"
+
+  IndicatorCalculator:
+    path: path1
+    category: core
+    runMode: event
+    ports_used: []
+    inputs:
+      - edge: quote_stream
+        from: MarketDataReceiver
+    outputs:
+      - edge: indicator_bundle
+        type: DataFlow
+        to: StrategyEngine
+    state:
+      - ring_buffer_per_symbol: 200
+    supported_indicators: [sma, ema, rsi, macd, bollinger, atr]
+
+  StrategyEngine:
+    path: path1
+    category: strategy
+    runMode: event
+    ports_used: [StrategyRuntimePort, StoragePort]
+    inputs:
+      - edge: indicator_bundle
+        from: IndicatorCalculator
+      - edge: position_snapshot
+        from: PortfolioStore
+        role: ConfigRef
+    outputs:
+      - edge: signal_output
+        type: DataFlow
+        to: RiskGuard
+    strategy_load:
+      source: "strategies/*.py"
+      active_count: 1             # Phase 1 제약
+      hot_reload: false
+
+  RiskGuard:
+    path: path1
+    category: core
+    runMode: event
+    ports_used: [StoragePort, ClockPort, AuditPort]
+    inputs:
+      - edge: signal_output
+        from: StrategyEngine
+      - edge: portfolio_snapshot
+        from: PortfolioStore
+        role: ConfigRef
+    outputs:
+      - edge: approved_signal
+        type: DataFlow
+        to: OrderExecutor
+      - edge: rejection_event
+        type: AuditTrace
+        to: AuditStore
+    pre_order_checks:
+      - { id: 1, name: "insufficient_cash", block: true }
+      - { id: 2, name: "concentration_limit", block: true, threshold: 0.20 }
+      - { id: 3, name: "daily_loss_limit", block: "entry_only", threshold: -0.02 }
+      - { id: 4, name: "trade_count_limit", block: true, threshold: 40 }
+      - { id: 5, name: "outside_trading_hours", block: true }
+      - { id: 6, name: "vi_triggered", block: true }
+      - { id: 7, name: "circuit_breaker_open", block: true }
+    deferred_checks_phase2:
+      - sector_concentration
+      - correlation_check
+      - leverage_limit
+      - market_regime
+      - var_calculation
+
+  OrderExecutor:
+    path: path1
+    category: core
+    runMode: stateful_service
+    ports_used: [BrokerPort, StoragePort, AuditPort]
+    inputs:
+      - edge: approved_signal
+        from: RiskGuard
+    outputs:
+      - edge: execution_event
+        type: Event
+        to: TradingFSM
+      - edge: execution_event
+        type: AuditTrace
+        to: AuditStore
+    idempotency:
+      key: order_uuid
+      enforce: true
+    order_types_supported: [limit_buy, limit_sell, market_buy, market_sell]
+    deferred_order_types_phase2:
+      - amend, cancel_replace, ioc, fok, stop, stop_limit, oco, bracket
+    circuit_breaker:
+      window_seconds: 60
+      max_failures: 3
+      on_trip: "emit FSM event BROKER_FAILURE → SAFE_MODE"
+
+  TradingFSM:
+    path: path1
+    category: core
+    runMode: stateful_service
+    ports_used: [StoragePort, AuditPort]
+    inputs:
+      - edge: execution_event
+        from: OrderExecutor
+      - edge: halt_signal
+        from: cli_halt
+        role: Command
+    outputs:
+      - edge: state_transition
+        type: StateTransition
+        to: PortfolioStore
+      - edge: state_transition
+        type: AuditTrace
+        to: AuditStore
+    states: [IDLE, ENTRY_PENDING, IN_POSITION, EXIT_PENDING, ERROR, SAFE_MODE]
+    transitions:
+      - { from: IDLE,           to: ENTRY_PENDING, trigger: entry_signal }
+      - { from: ENTRY_PENDING,  to: IN_POSITION,   trigger: fill_complete }
+      - { from: ENTRY_PENDING,  to: IDLE,          trigger: cancel_or_reject }
+      - { from: ENTRY_PENDING,  to: ERROR,         trigger: broker_error }
+      - { from: IN_POSITION,    to: EXIT_PENDING,  trigger: exit_signal }
+      - { from: EXIT_PENDING,   to: IDLE,          trigger: fill_complete }
+      - { from: EXIT_PENDING,   to: IN_POSITION,   trigger: cancel }
+      - { from: EXIT_PENDING,   to: ERROR,         trigger: broker_error }
+      - { from: ERROR,          to: IDLE,          trigger: recovery }
+      - { from: ERROR,          to: SAFE_MODE,     trigger: unrecoverable }
+      - { from: "*",            to: SAFE_MODE,     trigger: halt_requested }
+      - { from: SAFE_MODE,      to: IDLE,          trigger: manual_resume }
+
+# ---------------------------------------------------------------------------
+# Edges — 약 12개
+# ---------------------------------------------------------------------------
+edges:
+  - { id: e01, from: MarketDataPort,      to: MarketDataReceiver,   type: DataFlow,       role: DataPipe,    name: raw_tick }
+  - { id: e02, from: MarketDataReceiver,  to: IndicatorCalculator,  type: DataFlow,       role: DataPipe,    name: quote_stream }
+  - { id: e03, from: IndicatorCalculator, to: StrategyEngine,       type: DataFlow,       role: DataPipe,    name: indicator_bundle }
+  - { id: e04, from: PortfolioStore,      to: StrategyEngine,       type: DataFlow,       role: ConfigRef,   name: position_snapshot }
+  - { id: e05, from: StrategyEngine,      to: RiskGuard,            type: DataFlow,       role: DataPipe,    name: signal_output }
+  - { id: e06, from: PortfolioStore,      to: RiskGuard,            type: DataFlow,       role: ConfigRef,   name: portfolio_snapshot }
+  - { id: e07, from: RiskGuard,           to: OrderExecutor,        type: DataFlow,       role: DataPipe,    name: approved_signal }
+  - { id: e08, from: RiskGuard,           to: AuditStore,           type: Event,          role: AuditTrace,  name: rejection_event }
+  - { id: e09, from: OrderExecutor,       to: BrokerPort,           type: DataFlow,       role: DataPipe,    name: order_request }
+  - { id: e10, from: OrderExecutor,       to: TradingFSM,           type: Event,          role: EventNotify, name: execution_event }
+  - { id: e11, from: OrderExecutor,       to: AuditStore,           type: Event,          role: AuditTrace,  name: order_audit }
+  - { id: e12, from: TradingFSM,          to: PortfolioStore,       type: StateTransition, role: DataPipe,   name: state_transition }
+  - { id: e13, from: TradingFSM,          to: AuditStore,           type: StateTransition, role: AuditTrace, name: fsm_audit }
+  - { id: e14, from: cli_halt,            to: TradingFSM,           type: Event,          role: Command,     name: halt_signal }
+
+# ---------------------------------------------------------------------------
+# Domain Types — 20개 (전체 정의는 docs/specs/domain-types-phase1.md 참조)
+# ---------------------------------------------------------------------------
+domain_types:
+  primitives: [Symbol, Price, Quantity, Money, CorrelationId]
+  enums: [OrderSide, OrderType, OrderStatus, FSMState, BrokerMode]
+  market: [Quote, OHLCV, IndicatorBundle]
+  signal: [SignalOutput]
+  order: [OrderRequest, OrderResult, TradeRecord]
+  portfolio: [Position, PortfolioSnapshot]
+  risk: [RiskDecision]
+
+# ---------------------------------------------------------------------------
+# DB Tables — 6개
+# ---------------------------------------------------------------------------
+db_tables:
+  - market_ohlcv
+  - order_tracker
+  - trades
+  - positions
+  - daily_pnl
+  - audit_events
+
+# ---------------------------------------------------------------------------
+# Four Critical Safeguards — Phase 1 적용 여부
+# ---------------------------------------------------------------------------
+safeguards:
+  duplicate_order_prevention:
+    status: active
+    mechanism: "order_uuid (UUID) + order_tracker PK constraint"
+
+  state_account_consistency:
+    status: active
+    mechanism: "TradingFSM state_transition → positions table atomic update"
+
+  event_durability:
+    status: active_minimum
+    mechanism: "audit_events append-only + immutable trigger"
+    note: "Phase 1은 최소 구현. Outbox pattern 은 Phase 2."
+
+  command_control_security:
+    status: active_minimum
+    mechanism: "CLI via SSH + OS-level auth. Telegram 4-layer auth는 Phase 2."
+
+# ---------------------------------------------------------------------------
+# 합격 기준 — 변경 금지
+# ---------------------------------------------------------------------------
+acceptance_criteria:
+  - id: 1
+    desc: "백테스트 샤프 > 1.0"
+    verify: "atlas backtest → result.json"
+  - id: 2
+    desc: "모의투자 5거래일 무사고"
+    verify: "SELECT COUNT(*) FROM audit_events WHERE severity IN ('error','critical') AND occurred_at >= NOW() - INTERVAL '5 days' → 0"
+  - id: 3
+    desc: "일일 손익 자동 기록"
+    verify: "SELECT COUNT(*) FROM daily_pnl WHERE trade_date >= CURRENT_DATE - INTERVAL '5 days' → 5"
+  - id: 4
+    desc: "atlas halt 30초 내 차단"
+    verify: "halt 시각 vs 최종 order 시각 diff < 30s"
+  - id: 5
+    desc: "Crash 후 포지션 복원"
+    verify: "kill -9 → restart → positions 테이블과 FSM 상태 일치"
+
+# ---------------------------------------------------------------------------
+# 수치 체크섬 — 활성 문서 일관성 검증용
+# ---------------------------------------------------------------------------
+expected_counts:
+  nodes: 6
+  ports: 6
+  shared_stores: 3
+  edges: 14            # cli_halt 포함
+  domain_types: 20
+  db_tables: 6
+  adapters_primary: 6
+  pre_order_checks: 7
+  fsm_states: 6
+  fsm_transitions: 12
+  cli_commands: 12
+  acceptance_criteria: 5
+
+# 이 수치가 다른 활성 문서와 다르면 통폐합 실패.
+# ---------------------------------------------------------------------------
