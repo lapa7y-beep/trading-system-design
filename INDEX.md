@@ -108,7 +108,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | Nodes | **6** |
 | Ports | **6** |
 | Shared Stores | **3** |
-| Edges | **약 12** |
+| Edges | **14** |
 | Domain Types | **20** |
 | DB Tables | **6** |
 | Adapters (Primary) | **6** |

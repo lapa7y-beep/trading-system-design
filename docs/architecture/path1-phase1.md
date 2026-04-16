@@ -182,7 +182,7 @@ class RiskDecision(BaseModel):
 
 ---
 
-## 3. Path 1 Phase 1 엣지 (약 12개)
+## 3. Path 1 Phase 1 엣지 (14개)
 
 ```
 MarketDataPort ──[quote_stream]──> IndicatorCalculator
