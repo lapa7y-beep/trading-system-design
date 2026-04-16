@@ -41,6 +41,7 @@
 | [`docs/architecture/cli-design.md`](docs/architecture/cli-design.md) | `atlas` CLI 설계 (Telegram 대체) |
 | [`docs/architecture/fsm-design.md`](docs/architecture/fsm-design.md) | TradingFSM 6상태 |
 | [`docs/architecture/db-stack.md`](docs/architecture/db-stack.md) | DB 스택 선정 근거 |
+| [`docs/architecture/screens/screen-architecture.md`](docs/architecture/screens/screen-architecture.md) | **화면 설계** (4카테고리, 17화면, 외곽·전환·레이아웃) |
 
 ---
 
@@ -116,6 +117,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | Pre-Order Checks | **7** |
 | FSM States | **6** |
 | CLI Commands | **12** |
+| Screens | **17** |
 | 합격 기준 | **5** |
 
 **이 수치가 활성 문서들 간에 일치하지 않으면 설계 문서가 꼬인 것이다.** — 통폐합 시 최우선 검증 포인트.
@@ -142,6 +144,24 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 날짜 | 변경 |
 |------|------|
 | 2026-04-16 | Phase 1 확정 + 통폐합. 활성 문서 40여 개 → 16개. Phase 2+ 문서 Archive 이동. |
+| 2026-04-17 | screen-architecture.md v1.3 추가 (방향 A~C 완료). INDEX.md에 화면 설계 등재. |
+
+---
+
+## 남은 설계 작업 (구현 설계 진입 전 완료 필요)
+
+| 순서 | 작업 | 상태 |
+|------|------|------|
+| 1 | 방향 C — Operating 화면 레이아웃 | ✅ 완료 |
+| 2 | config.yaml 통합 스키마 | ⏳ 다음 |
+| 3 | Port ABC 시그니처 통합 (6개 Port Phase 1) | ❌ |
+| 4 | Adapter 구현 명세 (Mock/CSV/KIS) | ❌ |
+| 5 | Boot/Shutdown 시퀀스 Phase 1 축약판 | ❌ |
+| 6 | 에러 핸들링 통합 매트릭스 | ❌ |
+| 7 | 프로젝트 폴더 구조 | ❌ |
+| 8 | 테스트 전략 | ❌ |
+
+**방침**: 설계 작업 1~8 전부 완료 후 전체 점검 → 구현 설계 진입. 코드 설계는 가장 나중.
 
 ---
 
