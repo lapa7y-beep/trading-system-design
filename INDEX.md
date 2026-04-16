@@ -129,7 +129,17 @@ LLM이 절대 하지 않는 것: FSM 경로 중간 개입 / 실시간 주문 판
 
 ---
 
-### 7. 설계 결정 기록 (docs/decisions/)
+### 7. 참고 자료 (docs/references/)
+
+| 파일 | 내용 | 상태 |
+|------|------|------|
+| `docs/references/glossary.md` | 시스템 고유 용어, FSM 용어, KIS API 약어 사전 | stable |
+| `docs/references/kis-api-notes.md` | KIS API 주요 메모 (환경 구분, 토큰, 구독 제한, API 목록) | stable |
+| `docs/references/decision-log.md` | 주요 결정 이력 타임라인 (날짜·이유·ADR 연결) | stable |
+
+---
+
+### 8. 설계 결정 기록 (docs/decisions/)
 
 오늘(2026-04-16) 확정된 핵심 결정들.
 
