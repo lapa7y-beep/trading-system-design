@@ -3,6 +3,8 @@
 > 상태: stable  
 > 날짜: 2026-04-16  
 > 연관 ADR: 007
+>
+> **Phase 1 주의**: Phase 1은 **개별 종목 FSM 6상태만** 사용한다 (IDLE/ENTRY_PENDING/IN_POSITION/EXIT_PENDING/ERROR/SAFE_MODE). 종목군 FSM(레벨 1)과 개별 종목 FSM 13상태 중 나머지 7상태(WATCHING, SCENARIO_RUNNING, PENDING_APPROVAL, PARTIAL_FILLED, HOLDING, RECONCILING, EXITING)는 Phase 2 이후 활성화. Phase 1 FSM 상세는 [`path1-phase1.md`](path1-phase1.md) Section 2.6 참조.
 
 ---
 

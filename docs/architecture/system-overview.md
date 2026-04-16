@@ -3,6 +3,8 @@
 > 상태: stable  
 > 날짜: 2026-04-16  
 > 연관 ADR: 010
+>
+> **Phase 1 주의**: 이 문서는 전체 비전(5 Path, 45 노드)을 기술한다. Phase 1 활성 범위는 **Path 1의 6노드만**이다. Phase 1 상세는 [`path1-phase1.md`](path1-phase1.md) 참조. 아래 수치(Section 7)는 전체 완성 시 목표이며 현재 활성 수치가 아니다.
 
 ---
 
@@ -98,9 +100,13 @@ settings.yaml broker: 한 줄로 전환
 
 ---
 
-## 7. 전체 수치 (2026-04-16 기준)
+## 7. 전체 수치 (전체 비전 — Phase 1 활성 수치 아님)
+
+> **Phase 1 활성 수치**: 6 Nodes / 6 Ports / 14 Edges / 3 Shared Stores / 20 Domain Types
+> → 상세는 [`graph_ir_phase1.yaml`](../../graph_ir_phase1.yaml) 및 [`INDEX.md`](../../INDEX.md) 참조
 
 ```
+전체 비전 (Phase 2~3 완료 시):
 Paths:          5개 고립 경로 + Path 6 (Market Intelligence)
 Nodes:          45개 (43 + ApprovalGate + MarketContextBuilder)
 Ports:          36개 / 192 메서드
