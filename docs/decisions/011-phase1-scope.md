@@ -224,14 +224,31 @@ atlas backtest <file> # 백테스트 실행
 
 ## 9. Phase 2 진입 조건
 
-Phase 1 합격 기준 5개 모두 충족 후, 다음 중 우선순위 선택:
+Phase 1 합격 기준 5개 모두 충족 후, **반드시 2-0부터 시작**:
+
+### Phase 2-0: UI 인프라 (선행 필수)
+
+Phase 2A~D의 기능을 화면에서 보려면 반드시 2-0이 선행되어야 한다.
+
+| 항목 | 내용 |
+|------|------|
+| FastAPI 서버 | `atlas/api/` — REST 14개 + WebSocket 2개 엔드포인트 |
+| Grafana | PostgreSQL 직결 — 읽기 전용 모니터링 패널 |
+| HTML 제어 화면 | FastAPI `/static/` 서빙 — 버튼/폼 (HALT, Policy, Strategy) |
+| Telegram Bot | 긴급 제어 + 승인 — `/halt`, `/approve`, 체결 알림 |
+
+**설계 문서**: `graph_ir_phase1.yaml` §api_layer, §frontend_stack
+
+**React 전환 경로**: HTML static/ → React build 교체. FastAPI API 무변경.
+
+### Phase 2A~D (기존)
 
 - **Phase 2A**: Path 6 (Market Intelligence) 추가 — 수급/호가/VI 반영
 - **Phase 2B**: Path 4 (Portfolio Management) 추가 — 다종목·다전략 관리
 - **Phase 2C**: Screener + WatchlistManager 추가 — 종목 자동 선정
 - **Phase 2D**: 실전 전환 — KIS live 계좌 소액 운용
 
-권장: 2A → 2B → 2C → 2D (안전성 우선)
+권장 순서: **2-0 → 2A → 2B → 2C → 2D** (안전성 우선)
 
 ---
 

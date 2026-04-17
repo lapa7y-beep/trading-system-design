@@ -12,7 +12,7 @@
 # - 현재 Phase 1은 "사람이 읽는 체크리스트 + 수동 검증 기준"
 # ============================================================================
 
-version: "1.0.1"
+version: "1.1.0"
 phase: 1
 updated: "2026-04-17"
 
@@ -342,3 +342,120 @@ expected_counts:
 
 # 이 수치가 다른 활성 문서와 다르면 통폐합 실패.
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Phase 2-0: API 레이어 (Phase 1 완료 후 첫 번째 작업)
+# ---------------------------------------------------------------------------
+api_layer:
+  status: "deferred_phase2_start"
+  framework: "FastAPI"
+  port: 8000
+  location: "atlas/api/"
+
+  principles:
+    - "HTML은 API 호출과 표시만 — 로직은 라우터에"
+    - "모든 응답 JSON — HTML/React 동일 엔드포인트 재사용"
+    - "control은 control_file.py 경유 — CLI와 동일 경로"
+    - "React 전환 시 백엔드 무변경 — 프론트엔드만 교체"
+
+  routers:
+    status:
+      endpoints:
+        - "GET /api/status       → 시스템 전체 상태"
+        - "GET /api/health       → Safeguards 4개 상태"
+        - "GET /api/audit        → 감사 로그 최근 N건"
+      db_tables: ["audit_events", "positions"]
+    trading:
+      endpoints:
+        - "GET /api/positions    → 보유 포지션 목록"
+        - "GET /api/pnl          → 일간/누적 P&L"
+        - "GET /api/orders       → 주문 이력 최근 N건"
+        - "GET /api/orders/live  → 미체결 주문"
+      db_tables: ["positions", "trades", "daily_pnl", "order_tracker"]
+    control:
+      endpoints:
+        - "POST /api/control/halt   → control_file.py → HALTED"
+        - "POST /api/control/resume → control_file.py → ACTIVE"
+        - "POST /api/control/stop   → SIGTERM to daemon"
+      mechanism: "control_file.py 재사용 (CLI와 동일 경로)"
+      auth: "localhost only (Phase 2 Telegram auth 전까지)"
+    config:
+      endpoints:
+        - "GET  /api/config         → config.yaml 읽기"
+        - "POST /api/config         → config.yaml 저장 (Validator 통과 후)"
+      validation: "pydantic Config 모델 통과 필수"
+    strategies:
+      endpoints:
+        - "GET  /api/strategies             → strategies/*.py 목록"
+        - "GET  /api/strategies/{name}      → 전략 파일 내용"
+        - "POST /api/strategies/{name}      → 전략 파일 저장"
+      storage: "파일시스템 (strategies/*.py)"
+    backtest:
+      endpoints:
+        - "POST /api/backtest          → 백테스트 실행 (비동기)"
+        - "GET  /api/backtest/{job_id} → 결과 조회"
+      mechanism: "BackgroundTasks → backtest/runner.py 재사용"
+
+  websockets:
+    fsm_stream:
+      path: "/ws/fsm"
+      payload: "FSMState per symbol, 변화 시 push"
+      source: "TradingFSM state_transition 후크"
+    orders_stream:
+      path: "/ws/orders"
+      payload: "OrderResult 체결/거절 이벤트"
+      source: "OrderExecutor → WebSocket broadcast"
+
+  static_html:
+    location: "atlas/api/static/"
+    pages:
+      - "index.html    — 메인 레이아웃"
+      - "control.html  — HALT/Resume/Stop 버튼"
+      - "policy.html   — 설정 폼"
+      - "strategy.html — 전략 파일 편집기"
+    rule: "HTML은 fetch()/WebSocket 호출만. 로직 없음."
+    react_migration: "static/ 폴더를 React build 결과물로 교체하면 전환 완료"
+
+  endpoint_count:
+    rest: 14
+    websocket: 2
+    total: 16
+
+# ---------------------------------------------------------------------------
+# 프론트엔드 기술스택 확정 (Phase 2-0)
+# ---------------------------------------------------------------------------
+frontend_stack:
+  strategy: "A+B 조합 → React 전환 경로 확보"
+  components:
+    grafana:
+      role: "읽기 전용 모니터링 (차트, 테이블, 수치)"
+      datasource: "PostgreSQL 직결"
+      covers:
+        - "Overview KPI 패널"
+        - "P1 Trading 차트 (OHLCV + MA)"
+        - "P4 Portfolio 성과 차트"
+        - "Market data 수집 현황"
+        - "Health Safeguards 상태"
+        - "System 저장소 현황"
+      phase: "2-0"
+    html_control:
+      role: "제어/설정 화면 (버튼, 폼)"
+      server: "FastAPI /static/ 서빙"
+      covers:
+        - "P1 Control (HALT/Resume/Stop)"
+        - "P1 Policy (config 편집)"
+        - "Strategy Edit/Backtest"
+        - "Rules 일부 (수동 승인)"
+      phase: "2-0"
+    telegram_bot:
+      role: "긴급 제어 + 승인 (모바일)"
+      covers:
+        - "/halt  /resume  /stop"
+        - "/status  /positions  /pnl"
+        - "/approve {id}  /reject {id}"
+        - "체결/에러 알림 push"
+      phase: "2-0"
+  react_migration:
+    trigger: "Grafana + HTML 운영 안정화 후 필요 시"
+    scope: "static/ → React build 교체. FastAPI API 무변경."
+    prerequisite: "React 학습 or Claude Code 활용"

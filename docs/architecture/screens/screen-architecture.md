@@ -289,9 +289,86 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 - [x] v1 방향 B — 화면 간 전환 흐름
 - [x] v1 방향 C Phase 1~2 — P1 Trading + 5 화면 큰 테두리
 - [x] **v2 — 카테고리 재편 (3 + 횡단)**
-- [ ] v2 방향 C — 나머지 화면 큰 테두리 (Overview, P4 Portfolio, Strategy 통합, Knowledge, 감시 4화면)
-- [ ] v2 방향 C — 설계 카테고리 4화면 상세
-- [ ] Phase 매핑 — 각 화면의 구현 Phase 명시
+- [x] **v2.1 — 전체 14화면 내부 레이아웃**
+- [x] **v2.2 — 프론트엔드 기술스택 확정 + FastAPI 레이어 설계**
+- [ ] Phase 2-0 구현 — FastAPI 서버 + Grafana 패널 + HTML 제어 + Telegram Bot
+- [ ] Phase 2A 진입 — Path 6 Market Intelligence
+
+---
+
+## 12. 프론트엔드 기술스택 확정 (v2.2)
+
+> 결정일: 2026-04-17
+> 기준: 프론트엔드 경험 최소 + 백엔드 중심 + React 전환 경로 확보
+
+### 12.1 전략: A+B 조합
+
+| 구분 | 도구 | 역할 | 한계 |
+|------|------|------|------|
+| A | Telegram Bot | 긴급 제어 + 승인 (모바일) | 복잡한 폼 불가 |
+| B-읽기 | Grafana | 모니터링/차트/수치 시각화 | 버튼 없음 |
+| B-쓰기 | HTML + FastAPI | 제어/설정 화면 (버튼, 폼) | React보다 단순 |
+
+### 12.2 화면별 구현 도구
+
+| 화면 | 도구 | 이유 |
+|------|------|------|
+| Overview KPI/차트 | Grafana | 읽기 전용, SQL 직결 |
+| P1 Trading Monitor (차트) | Grafana | OHLCV 시계열 |
+| P1 Trading Control | HTML (버튼) + Telegram | HALT/Resume/Stop |
+| P1 Trading Policy | HTML (폼) | config 편집 |
+| P4 Portfolio 성과 | Grafana | 차트/수치 |
+| Strategy Edit/Backtest | HTML (편집기/폼) | 파일 R/W + 실행 |
+| Knowledge | Grafana (현황) | Phase 3까지 최소 |
+| Market data | Grafana | 수집 현황 |
+| Health | Grafana + HTML | Safeguards 표시 + HALT 버튼 |
+| System | Grafana | EventBus/Docker/Scheduler |
+| Notify | HTML (설정폼) | 채널 ON/OFF |
+| Rules | HTML (승인버튼) + Telegram | ApprovalGate |
+| 설계 4화면 | Phase 2+ 별도 | LiteGraph.js 등 |
+
+### 12.3 FastAPI 엔드포인트 요약
+
+```
+읽기 (GET)
+  /api/status  /api/health  /api/audit
+  /api/positions  /api/pnl  /api/orders  /api/orders/live
+  /api/config  /api/strategies  /api/strategies/{name}
+  /api/backtest/{job_id}
+
+쓰기 (POST)
+  /api/control/halt  /api/control/resume  /api/control/stop
+  /api/config  /api/strategies/{name}  /api/backtest
+
+실시간 (WebSocket)
+  /ws/fsm      ← FSM 상태 변화 push
+  /ws/orders   ← 체결/거절 이벤트 push
+
+합계: REST 14 + WS 2 = 16 엔드포인트
+```
+
+### 12.4 React 전환 경로
+
+```
+Phase 2-0 (지금)          Phase 2+ (필요 시)
+─────────────────         ─────────────────
+FastAPI API   ──────────▶ FastAPI API (무변경)
+WebSocket     ──────────▶ WebSocket (무변경)
+Grafana 패널  ──────────▶ React 차트 컴포넌트
+HTML static/  ──────────▶ React build 결과물
+
+전환 비용: 프론트엔드만 교체. 백엔드 재설계 없음.
+전환 조건: Grafana+HTML 안정화 후 React 학습 or Claude Code 활용
+```
+
+### 12.5 핵심 규칙
+
+```
+1. HTML 로직 금지 — fetch()/WebSocket 호출과 표시만
+2. 모든 API 응답 JSON — HTML/React 동일 재사용
+3. 제어는 control_file.py 경유 — CLI와 동일 경로
+4. 긴급 제어는 Telegram 우선 — 폰에서 /halt가 가장 빠름
+```
 
 ---
 
