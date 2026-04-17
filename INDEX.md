@@ -201,3 +201,60 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 ---
 
 *End of INDEX*
+## 독해 순서 가이드
+
+### 경로 A — 방법론부터 이해하고 구현 (권장)
+
+처음 저장소를 여는 사람이거나, 구현을 바로 착수하려는 경우.
+
+1. **ADR-012** `docs/decisions/012-implementation-methodology.md` §1~6 (20분)
+   - 어휘 10개, 세 원칙, 17 Step 전체 지도
+2. **Seam Map** `docs/references/seam-map.md` §1~4 (10분)
+   - 어휘가 저장소의 어느 파일에 대응하는지
+3. **PROGRESS.md** `docs/runbooks/PROGRESS.md` (2분)
+   - 현재 어느 Step에 있는지 확인
+4. **해당 Step Runbook** `docs/runbooks/step-NN.md`
+   - §4 참조 문서에 지정된 기존 설계 문서만 정독
+5. **구현 시작**
+
+### 경로 B — 전체 설계를 먼저 훑고 싶은 경우
+
+시스템 전체 그림을 먼저 파악한 뒤 구현에 들어가고 싶은 경우.
+
+1. **ADR-011** `docs/decisions/011-phase1-scope.md` — Phase 1 범위와 합격기준
+2. **path1-phase1.md** `docs/architecture/path1-phase1.md` — 6노드 상세 설계
+3. **graph_ir_phase1.yaml** — 노드/엣지 정식 정의
+4. **ports-phase1.md** `docs/specs/ports-phase1.md` — 6 Port 시그니처 SSoT
+5. **domain-types-phase1.md** `docs/specs/domain-types-phase1.md` — 20 타입
+6. **ADR-012** `docs/decisions/012-implementation-methodology.md` — 방법론
+7. 이후 경로 A의 3~5 반복
+
+### 문서 3층 구조
+
+```
+What 층 (기존 설계)  — docs/decisions/011, docs/architecture, docs/specs
+  └─ 시스템이 무엇인가. SSoT. 5차 검증 188항목 정합성 보존.
+
+How 층 (방법론)      — docs/decisions/012, docs/references/seam-*
+  └─ 어떻게 증분하는가. Tracer Bullet + Walking Skeleton + Stub Replacement.
+
+Run 층 (Runbook)     — docs/runbooks/
+  └─ 지금 무엇을 하는가. 매일 한 Step. 기존 설계를 포인터로 참조.
+```
+
+## Runbook 시스템
+
+| 파일 | 역할 |
+|------|------|
+| `docs/runbooks/README.md` | Runbook 사용법, 매일 반복 루프, 규칙 |
+| `docs/runbooks/TEMPLATE.md` | 7섹션 표준 템플릿 |
+| `docs/runbooks/PROGRESS.md` | 17 Step 진행 상태 + Daily Log |
+| `docs/runbooks/step-00.md` ~ `step-11b.md` | 17개 Step 실행 절차서 |
+
+## 방법론 문서
+
+| 파일 | 역할 |
+|------|------|
+| `docs/decisions/012-implementation-methodology.md` | ADR-012: 방법론 원칙, 어휘, 17 Step, 안티패턴 |
+| `docs/references/seam-map.md` | 어휘 → 저장소 실제 위치 매핑 |
+| `docs/references/seam-classification.md` | Port별 Seam 분류 및 교체 난이도 분석 |
