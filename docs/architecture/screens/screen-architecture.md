@@ -1,7 +1,8 @@
 # ATLAS Screen Architecture v2
 
 > 상태: confirmed
-> 최종 수정: 2026-04-17
+> 레이아웃: v2.1 (전체 14화면 내부 레이아웃 추가)
+> 최종 수정: 2026-04-17 (v2.1)
 > 변경 사유: 4 카테고리 → 3 카테고리 + 횡단 감시. Path 쌍 기반 재분류.
 
 ---
@@ -276,6 +277,7 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 | 2026-04-16 | v1.2 | 화면 전환 흐름 추가 | 방향 B 완료 |
 | 2026-04-16 | v1.3 | P1 Trading 4탭 추가 | 방향 C Phase 1 완료 |
 | 2026-04-16 | v1.4 | Phase 2 5화면 추가 | 방향 C Phase 2 완료 |
+| 2026-04-17 | v2.1 | 전체 14화면 내부 레이아웃 추가 (§10). Phase1 CLI 매핑 전수 |
 | 2026-04-17 | **v2.0** | **3 카테고리 + 횡단 감시로 전면 재편** | 5 Paths와 Categories 축 불일치 해소. P1+P4 한 쌍. 감시 횡단. Strategy+Backtest 통합. Operator 서브노드 배치 확정. 14 화면. |
 
 ---
@@ -290,3 +292,217 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 - [ ] v2 방향 C — 나머지 화면 큰 테두리 (Overview, P4 Portfolio, Strategy 통합, Knowledge, 감시 4화면)
 - [ ] v2 방향 C — 설계 카테고리 4화면 상세
 - [ ] Phase 매핑 — 각 화면의 구현 Phase 명시
+
+---
+
+## 10. 화면 내부 레이아웃 (v2 기준 전체)
+
+> 최종 수정: 2026-04-17 (v2.1)
+> 기준: 3카테고리 + 횡단 감시 (v2), 14화면 전수
+
+---
+
+### 10.1 거래 — Overview
+
+**영역 구조 (4영역)**
+
+| 영역 | 위치 | 내용 | Phase 1 |
+|------|------|------|---------|
+| KPI 카드 4개 | 상단 | 일간 P&L / 보유 포지션 / 오늘 체결 / 누적 수익률+Sharpe | `atlas pnl` + `atlas positions` |
+| 포지션 현황 | 중좌 | 종목·수량·평균단가·손익 테이블 | `atlas positions` |
+| 전략별 성과 | 중우 | 전략별 수익률 바 차트 | `atlas pnl` 파생 |
+| 체결 내역 | 하단 | 시각·종목·방향·수량·가격·전략 테이블 (실시간) | `atlas orders` |
+
+**v1 대비 변경**: Safeguards 4개 상태 → Header 띠로 이동. Kill switch → Health 화면으로 이동. "전체 KPI" → "거래 KPI"로 범위 축소.
+
+---
+
+### 10.2 거래 — P1 Trading
+
+#### Monitor 탭
+
+| 영역 | 위치 | 내용 | Phase 1 |
+|------|------|------|---------|
+| FSM 상태 + 노드 파이프라인 | 좌 | 종목별 FSM 상태 / DataIngest→SignalFusion→OrderGate→ExecEngine 점 상태 | `atlas status` |
+| 실시간 차트 | 우 | 1분봉 + MA5/MA20. 종목 클릭 전환 | Phase 2 (Grafana) |
+| 주문 로그 | 하단 | 시각·종목·방향·수량·가격·상태·사유 (실시간) | `atlas orders` |
+
+#### Control 탭
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| 시스템 제어 | HALT / Resume 버튼. AUTO ↔ MANUAL 모드 전환 | `atlas halt` / `atlas resume` |
+| 포지션 조치 | 종목별 손절·청산. 전 포지션 청산 (더블 확인) | Phase 2 |
+| 조치 이력 | 최근 제어 명령 이력 | PG audit_events |
+
+#### Policy 탭
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| 활성 전략 | 활성화된 전략 목록 | `config.yaml` |
+| 리스크 파라미터 | max_cash_usage / max_position_pct / max_daily_loss / max_daily_trades / trading_hours / circuit_breaker | `config.yaml` |
+| Watchlist | 수집·거래 종목 관리 | `watchlist.yaml` |
+| Save | Validator + 4-layer 승인 + Audit 3 게이트 | Phase 2 |
+
+#### Test 탭
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| Backtest 실행 | 전략 선택 / 기간 / 초기 자본 | `atlas backtest <file>` |
+| 성과 지표 | Sharpe / Return / MDD / Win Rate / Trades | CLI 출력 |
+| Equity Curve | 자산 곡선 차트 | Phase 2 |
+
+---
+
+### 10.3 거래 — P4 Portfolio
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| 포트폴리오 요약 | 총 자산 / 누적 수익률 / Sharpe | RiskGuard 간이 대체 |
+| 종목별 비중 | 비중 바 차트 | Phase 2 |
+| 전략별 성과 | 수익률 / MDD / HHI | Phase 2 |
+| 리밸런싱 | 다음 실행 시각 + 실행 버튼 | Phase 2 |
+
+---
+
+### 10.4 거래 지원 — Strategy
+
+#### Edit 탭
+
+| 영역 | 위치 | 내용 |
+|------|------|------|
+| 전략 목록 | 좌 | strategies/*.py 목록. 선택 시 우측 편집기 로드. [+ 새 전략] |
+| 코드 편집기 | 우상 | .py 소스 코드 편집. [저장] [→ Backtest 실행] 버튼 |
+| 파라미터 | 우하 | fast_period / slow_period / entry_threshold / stop_loss_pct 등 |
+
+#### Backtest 탭
+
+| 영역 | 내용 |
+|------|------|
+| 실행 설정 | 전략 선택 / 기간 / 초기 자본 / 종목 |
+| 성과 지표 | Sharpe / Return / MDD / Win Rate / Trades |
+| Equity Curve | Phase 2. Phase 1은 수치만 |
+| 연결 버튼 | [→ Edit 수정] [→ Optimize] |
+
+#### Optimize 탭
+
+| 영역 | 내용 |
+|------|------|
+| 파라미터 범위 | 각 파라미터 min/max/step 설정. 조합 수 표시 |
+| Grid Search | [▶ Run Grid Search] 실행 |
+| 최적 파라미터 Top 3 | Sharpe 기준 정렬 |
+| Walk-Forward | 과적합 지수 표시 |
+| 적용 버튼 | [#1 적용 → Edit] |
+
+#### History 탭
+
+| 영역 | 내용 |
+|------|------|
+| 전략별 버전 이력 | 각 전략의 v1.0/v0.9… 목록 |
+| 버전 상세 | 선택 시 작성일 / Sharpe / 변경 내용 |
+| 복원 버튼 | [이 버전으로 복원] |
+
+---
+
+### 10.5 거래 지원 — Knowledge
+
+**서브탭 3개**: Build / Explore / Quality
+
+| 서브탭 | 내용 | Phase |
+|--------|------|-------|
+| Build | 수집 소스(DART, 뉴스) / 수집 주기 / 파이프라인 상태 (마지막 실행 시각) | Phase 3 |
+| Explore | 온톨로지 노드·엣지 수 / 지식 검색 / 인과 추론 결과 | Phase 3 |
+| Quality | 중복 건수 / 이상 엔티티 목록 / 정제 실행 | Phase 3 |
+
+---
+
+### 10.6 거래 지원 — Market data
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| 수집 상태 | KIS WS 연결 / KIS REST / 활성 종목 수 | `atlas status` |
+| 수집 현황 | 오늘 수집 봉 수 / 마지막 수집 시각 / 저장 지연 | `atlas status` |
+| OHLCV 미리보기 | 종목별 최신 가격 테이블 | `atlas status` |
+| 수집 설정 | 종목 추가/제거 / 분봉 간격 / 일봉 수집 시각 | `config.yaml` |
+
+---
+
+### 10.7 감시 횡단 — Health
+
+| 영역 | 내용 | Phase 1 |
+|------|------|---------|
+| Four Critical Safeguards | 중복주문방지·상태계좌일관성·이벤트내구성·명령제어보안 — 각 상태 점 | `atlas status` |
+| 긴급 제어 | ⏸ HALT / ⛔ KILL ALL (더블 확인) | `atlas halt` |
+| 노드 상태 맵 | 13개 인터페이스 노드 전체 헬스 점 | Phase 2 |
+| 계좌 일관성 | 마지막 검증 시각 / DB 포지션 / KIS 잔고 / 미체결 주문 | 5분 자동 검증 |
+| 감사 로그 | 최근 이벤트 이력 | PG audit_events |
+
+**v1 W1 대비 변경**: Anomaly 통합 뷰 → Safeguards 중심으로 재편. 노드 맵 13개로 확장.
+
+---
+
+### 10.8 감시 횡단 — System
+
+| 영역 | 내용 |
+|------|------|
+| EventBus 상태 | 처리량(events/min) / 적체 / dead letter / Redis Streams 연결 / 마지막 이벤트 |
+| 저장소 연결 | PostgreSQL / TimescaleDB / Redis 연결 상태 / 디스크·메모리 사용량 |
+| Docker 컨테이너 | atlas-core / postgres / redis / grafana 상태 + 기동 시각 |
+| Scheduler | 계좌 검증(5분) / OHLCV 수집(1분) / 일봉 수집(15:35) / P&L 집계(15:45) 현황 |
+| 6개 공유 저장소 | TimeSeries / Knowledge Graph / Strategy Registry / Position State / Event Log / Config 전체 상태 |
+
+**신규 화면 (v1에 없음)**: v1 Operating Infra > System에서 독립. EventBus 가시성 + 저장소 통합.
+
+---
+
+### 10.9 감시 횡단 — Notify
+
+| 영역 | 내용 |
+|------|------|
+| 채널 상태 | Telegram / Discord 연결 상태 / 마지막 발송 시각 |
+| 알림 이력 | 체결·에러·검증 완료·시스템 시작 이력 (타임라인) |
+| 채널 설정 | 체결 알림 ON/OFF / 에러 알림 / 일일 리포트 시각 / 승인 요청 채널 |
+
+**신규 화면 (v1에 없음)**: v1 Operator.Notifier가 화면으로 독립.
+
+---
+
+### 10.10 감시 횡단 — Rules
+
+| 영역 | 내용 |
+|------|------|
+| 승인 대기 (ApprovalGate) | 현재 승인 대기 목록 / 승인·거절 버튼 |
+| 승인 이력 | 과거 승인·거절 이력 |
+| Watchdog 규칙 | 규칙 목록 (조건 → 액션). 예: max_daily_loss > 3% → HALT |
+| 규칙 관리 | [+ 규칙 추가] [규칙 테스트] |
+
+**v1 W2+W3 대비 변경**: Rule Editor + Rule Test → Rules 단일 화면으로 통합. ApprovalGate 흡수.
+
+---
+
+### 10.11 Phase 1 ↔ CLI 전체 매핑 (v2 기준)
+
+| 화면 | CLI 명령 | Phase |
+|------|---------|-------|
+| Overview KPI 전체 | `atlas status` | 1 |
+| Overview 포지션 | `atlas positions` | 1 |
+| Overview P&L | `atlas pnl` | 1 |
+| Overview 체결 | `atlas orders` | 1 |
+| P1 Monitor FSM | `atlas status` | 1 |
+| P1 Monitor 주문 로그 | `atlas orders` | 1 |
+| P1 Control HALT | `atlas halt` | 1 |
+| P1 Control Resume | `atlas resume` | 1 |
+| P1 Test Backtest | `atlas backtest <file>` | 1 |
+| P1 Policy 설정 | `atlas config show` | 1 |
+| Market data 상태 | `atlas status` | 1 |
+| Health Safeguards | `atlas status` | 1 |
+| Health HALT | `atlas halt` | 1 |
+| Health 감사 로그 | `atlas audit` | 1 |
+| P4 Portfolio | — | 2 (RiskGuard 간이 대체) |
+| Strategy 전체 | — | 2 (Edit), 2 (Backtest/Optimize/History) |
+| Knowledge 전체 | — | 3 |
+| System 전체 | `atlas status` 일부 | 2 |
+| Notify 전체 | — | 2 |
+| Rules 전체 | — | 2 |
+| 설계 4화면 전체 | — | 2+ |
+
