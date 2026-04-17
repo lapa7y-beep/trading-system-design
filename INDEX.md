@@ -73,6 +73,7 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | `error-handling-phase1.md` | Phase 1 에러 핸들링 매트릭스 (4계층·CB·SAFE_MODE·KIS코드) |
 | `project-structure-phase1.md` | Phase 1 프로젝트 폴더 구조 (Hexagonal 3층·의존방향) |
 | `test-strategy-phase1.md` | Phase 1 테스트 전략 (피라미드·합격기준 자동화·CI) |
+| `quant-spec-phase1.md` | Phase 1 퀀트 명세 (전략수식·한국시장규칙·체결모델·백테스트재현성) |
 | `db-schema-phase1.sql` | 실행 가능 DDL (6테이블) |
 
 ### 파이프라인 (pipelines/) — 데이터가 어떻게 흐르는가

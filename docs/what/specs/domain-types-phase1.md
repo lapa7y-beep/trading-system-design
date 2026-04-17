@@ -163,7 +163,8 @@ class SignalOutput(BaseModel):
     strategy_name: str
     strategy_version: str
     confidence: float = 1.0        # 0.0 ~ 1.0 (Phase 1은 참고용)
-    rationale: str = ''            # 감사용 설명
+    rationale: str = ''            # 감사용 설명 (reason_code 포함: "golden_cross|sma5=72400>sma20=71800")
+    correlation_id: CorrelationId | None = None  # 신호→주문→체결 추적 ID (quant-spec §4.3)
 ```
 
 ### 3.5 Order

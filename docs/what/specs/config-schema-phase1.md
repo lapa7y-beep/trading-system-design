@@ -160,9 +160,10 @@ cli:
 # ==========================================================================
 backtest:
   initial_cash: 100000000         # int | 초기 자금 (KRW, 기본 1억)
-  slippage_bps: 5                 # int ≥ 0 | 슬리피지 (basis points, 기본 5 = 0.05%)
+  slippage_ticks: 1               # int ≥ 0 | 슬리피지 (호가단위 tick 수, 기본 1)
   fee_rate: 0.00015               # float ≥ 0 | 매수·매도 수수료율 (기본 0.015%)
-  tax_rate: 0.0023                # float ≥ 0 | 증권거래세 (매도 시, 기본 0.23%)
+  transaction_tax_rate: 0.0018    # float ≥ 0 | 증권거래세 (매도 시, KOSPI 2024~ 기준 0.18%)
+  special_tax_rate: 0.0015        # float ≥ 0 | 농어촌특별세 (KOSPI만, 0.15%. KOSDAQ은 0)
 
 # ==========================================================================
 # [Phase 2 예약 — Phase 1에서 설정해도 무시됨]
@@ -267,3 +268,55 @@ ATLAS_DATABASE_URL=postgresql://atlas:secret@localhost:5432/atlas
 ---
 
 *Phase 1 config.yaml 통합 스키마 — 12개 섹션, MockBroker↔KISPaper 전환 명세 포함*
+
+---
+
+## 추가 섹션 (quant-spec-phase1 §9 연동)
+
+> **출처**: `docs/what/specs/quant-spec-phase1.md` §9
+> **추가일**: 2026-04-17
+
+```yaml
+# ---- quant-spec §9 연동 키 ----
+
+market_data:
+  bar_timeframe: "1m"               # str | Bar 집계 주기 (Phase 1 고정)
+  skip_opening_auction: true        # bool | 08:30~09:00 동시호가 tick 제외
+  skip_closing_auction: true        # bool | 15:20~15:30 동시호가 tick 제외
+
+strategy:
+  active: "ma_crossover"            # str | Phase 1 활성 전략
+  params:
+    fast: 5                         # int | 단기 SMA 기간
+    slow: 20                        # int | 장기 SMA 기간
+    warmup_bars: 25                 # int | slow + 여유
+  reentry_cooldown_seconds: 300     # int | 청산 후 동일종목 재진입 대기
+
+position_sizing:
+  algorithm: "fixed_notional"       # str | 수량 산정 알고리즘
+  cash_usage_pct: 0.15              # float | 가용현금 대비 비율
+  max_notional_krw: 5000000         # int | 최대 투자금 (원)
+
+exit_rules:
+  enable_ma_cross_exit: true        # bool | 데드크로스 청산
+  enable_stop_loss: true            # bool | 고정 손절
+  stop_loss_pct: -0.025             # float | 손절 기준 (-2.5%)
+  enable_eod_exit: true             # bool | 장 마감 전 강제 청산
+  eod_exit_time: "15:10"            # str | 청산 시각 (KST)
+
+order_execution:
+  price_mode: "limit"               # str | 지정가만 (시장가 금지)
+  tick_round_buy: "floor"           # str | 매수 호가 하향 보정
+  tick_round_sell: "ceil"           # str | 매도 호가 상향 보정
+  unfill_timeout_seconds: 10        # int | 미체결 대기 시간
+  unfill_retry_count: 1             # int | 미체결 재시도 횟수
+
+vi_detection:
+  enabled: true                     # bool | VI 감지 활성화
+  price_heuristic_window_min: 10    # int | 급등락 판단 윈도우 (분)
+  price_heuristic_threshold_pct: 10 # int | 급등락 기준 (%)
+  poll_interval_seconds: 5          # int | REST 폴링 주기
+  cooldown_after_vi_seconds: 120    # int | VI 후 신호 폐기 기간
+
+market_rules_file: "config/market_rules.yaml"  # str | 수수료·세금 외부 파일
+```

@@ -174,6 +174,7 @@ nodes:
       - { id: 5, name: "outside_trading_hours", block: true }
       - { id: 6, name: "vi_triggered", block: true }
       - { id: 7, name: "circuit_breaker_open", block: true }
+      - { id: 8, name: "price_limit_violation", block: true }  # quant-spec §5.3: 상하한가 ±30% 위반
     deferred_checks_phase2:
       - sector_concentration
       - correlation_check
@@ -334,7 +335,7 @@ expected_counts:
   domain_types: 20
   db_tables: 6
   adapters_primary: 6
-  pre_order_checks: 7
+  pre_order_checks: 8
   fsm_states: 6
   fsm_transitions: 12
   cli_commands: 12

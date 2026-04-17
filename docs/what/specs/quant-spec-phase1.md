@@ -1,9 +1,9 @@
 # quant-spec-phase1 — Phase 1 퀀트 명세
 
 > **상태**: draft (2026-04-17 작성, 최초 검토 대상)
-> **위치**: `docs/specs/quant-spec-phase1.md`
+> **위치**: `docs/what/specs/quant-spec-phase1.md`
 > **목적**: Phase 1의 **퀀트 도메인 로직**을 수식 수준으로 확정한다. 아키텍처 문서(graph_ir, path1-phase1, blueprint)는 시스템 구조를 정의하지만 전략/체결/백테스트의 숫자는 정의하지 않는다. 본 문서가 그 공백을 메운다.
-> **선행 문서**: `graph_ir_phase1.yaml` (SSoT), `docs/blueprints/path1-phase1-blueprint.md`, `docs/specs/domain-types-phase1.md`
+> **선행 문서**: `graph_ir_phase1.yaml` (SSoT), `docs/what/architecture/path1-node-blueprint.md`, `docs/what/specs/domain-types-phase1.md`
 > **이 문서가 없으면**: Walking Skeleton의 stub을 실제 구현으로 교체할 때 개발자가 즉흥 판단을 하게 되고, Phase 1 합격 기준 1번(Sharpe > 1.0)이 p-hacking으로 조작 가능하다.
 
 ---
@@ -258,19 +258,30 @@ def calculate_quantity(current_price: Price, cash: Money) -> Quantity:
 
 ### 4.3 SignalOutput에 포함
 
+domain-types-phase1.md에 이미 정의된 `SignalOutput`을 SSoT로 사용한다.
+Strategy가 생성하는 SignalOutput의 필드 매핑:
+
 ```python
+# domain-types-phase1.md SSoT (변경 금지)
 class SignalOutput(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    ts: datetime                   # ← quant-spec에서 generated_at에 해당
     symbol: Symbol
-    side: OrderSide          # BUY | SELL
-    intent: Literal["entry", "exit"]
-    price_suggested: Price   # 호가단위 보정 전 희망가
-    quantity: Quantity       # Strategy가 산정한 수량
-    reason_code: str         # "golden_cross" | "dead_cross" | "stop_loss" | "eod"
-    generated_at: datetime
-    correlation_id: CorrelationId  # 동일 신호-주문-체결 추적
+    side: OrderSide
+    price: Price                   # 호가단위 보정 전 희망가
+    quantity: Quantity             # Strategy가 §4.2로 산정한 수량
+    is_entry: bool                 # True=신규 진입, False=청산
+    strategy_name: str             # "ma_crossover"
+    strategy_version: str          # "1.0"
+    confidence: float = 1.0        # Phase 1은 항상 1.0
+    rationale: str = ''            # reason_code를 여기에 기록 ("golden_cross" 등)
+    # --- Phase 1 추가 제안 (domain-types 반영 필요) ---
+    # correlation_id: CorrelationId  # 신호-주문-체결 추적용 (§10 참조)
 ```
 
-이 필드는 `domain-types-phase1.md`에 **반영 필요** (현재 미확인 - 검토 항목).
+**rationale 필드로 reason_code 역할을 수행**한다 (예: `rationale="golden_cross|sma5=72400>sma20=71800"`).
+`correlation_id`는 domain-types에 추가 제안 (§10 참조).
 
 ### 4.4 청산 수량
 
@@ -418,17 +429,19 @@ def realized_pnl(entry_price, exit_price, qty, market) -> int:
 
 #### 6.2.1 기본 원칙
 
+* **다음 봉 시가 체결(Next Bar Open)** — backtesting.md 이벤트 엔진과 통일.
+  - 시점 t에 신호 발생 → 시점 t+1의 시가(open)로 체결.
+  - 같은 봉에서 신호 발생 + 체결은 look-ahead bias이므로 **금지**.
 * **즉시 전량 체결** 가정 (Phase 1). 부분 체결 시뮬레이션은 Phase 2.
-* 체결가 = 주문가 (지정가 기준).
-* **슬리피지 모델**: Phase 1 백테스트에서 1틱(호가단위) 불리하게 체결되는 것으로 가정.
+* **슬리피지 모델**: 다음 봉 시가 대비 1틱 불리하게 체결.
 
 ```python
-def mock_fill_price(order_price: int, side: OrderSide, symbol_market: str) -> int:
-    ts = tick_size(order_price)
+def mock_fill_price(next_bar_open: int, side: OrderSide) -> int:
+    ts = tick_size(next_bar_open)
     if side == OrderSide.BUY:
-        return order_price + ts      # 1틱 비싸게 체결
+        return next_bar_open + ts      # 1틱 비싸게 체결
     else:
-        return order_price - ts      # 1틱 싸게 체결
+        return next_bar_open - ts      # 1틱 싸게 체결
 ```
 
 #### 6.2.2 체결 지연
@@ -472,7 +485,9 @@ backtest:
   data_hash_file: "data/ohlcv/MANIFEST.sha256"
   
   # 초기 상태
-  initial_capital: 10_000_000   # 1천만원
+  initial_capital: 100_000_000  # 1억 (config-schema 기준, 모의투자 동일)
+  # 백테스트 전용 축소 자본 사용 시 별도 override 가능:
+  # initial_capital_override: 10_000_000  # 백테스트 전략 검증용 1천만
   starting_positions: []        # 무포지션 시작
   
   # 난수 (Phase 1은 난수 미사용, Phase 2 대비 고정)
@@ -671,15 +686,19 @@ market_rules_file: "config/market_rules.yaml"  # §6.1.2
 
 ## 10. 도메인 타입 보완 (domain-types-phase1.md 반영 필요)
 
-`graph_ir_phase1.yaml`의 `domain_types` 섹션에 나열된 타입 중 본 문서에서 **필드를 확정**해야 할 것:
+domain-types-phase1.md가 SSoT이므로 quant-spec은 이를 변경하지 않는다.
+다만 다음 **1개 필드 추가**를 domain-types 검토 항목으로 제안한다:
 
-| 타입 | 본 문서 §  | 상태 |
+| 타입 | 추가 필드 | 이유 |
 |------|----------|------|
-| `Bar` | §1.5 | 신규 (또는 OHLCV 확장) |
-| `SignalOutput` | §4.3 | 필드 5개 추가 (intent, price_suggested, reason_code, correlation_id) |
-| `OrderRequest` | §3.5 | price_mode="limit" 고정 |
+| `SignalOutput` | `correlation_id: CorrelationId` | 신호→주문→체결 전 과정 추적. audit 필수 |
 
-`domain-types-phase1.md` 변경 여부는 이 문서 검토 후 결정.
+기존 `rationale` 필드로 `reason_code` 역할을 수행하므로 별도 필드 불필요.
+기존 `is_entry` 필드로 `intent` 역할을 수행하므로 별도 필드 불필요.
+기존 `price` 필드로 `price_suggested` 역할을 수행하므로 별도 필드 불필요.
+
+`Bar` 타입은 §1.5에서 정의했으나, domain-types의 `OHLCV`와 대응한다.
+Phase 1에서는 OHLCV 타입에 `tick_count: int`와 `is_synthetic: bool` 필드 추가를 제안한다.
 
 ---
 
