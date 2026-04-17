@@ -459,3 +459,47 @@ frontend_stack:
     trigger: "Grafana + HTML 운영 안정화 후 필요 시"
     scope: "static/ → React build 교체. FastAPI API 무변경."
     prerequisite: "React 학습 or Claude Code 활용"
+
+# ---------------------------------------------------------------------------
+# Phase 2-0: Grafana 구성 상세
+# ---------------------------------------------------------------------------
+grafana_layer:
+  status: "deferred_phase2_start"
+  datasource: "PostgreSQL 직결 (FastAPI 불필요, 읽기 전용)"
+  dashboards:
+    - id: "overview"
+      file: "grafana/dashboards/overview.json"
+      panels: ["Stat×4(P&L/포지션/체결/Sharpe)", "Table(포지션)", "Bar(전략성과)", "Table(체결이력)"]
+    - id: "p1_monitor"
+      file: "grafana/dashboards/p1_monitor.json"
+      panels: ["Table(FSM상태)", "TimeSeries(OHLCV+MA)", "Table(주문로그)"]
+    - id: "market_data"
+      file: "grafana/dashboards/market_data.json"
+      panels: ["Stat×3(WS/종목수/봉수)", "Stat(마지막수집)", "Table(OHLCV미리보기)"]
+    - id: "health"
+      file: "grafana/dashboards/health.json"
+      panels: ["Stat×4(Safeguards)", "Table(노드상태)", "Table(계좌일관성)", "Table(감사로그)"]
+    - id: "system"
+      file: "grafana/dashboards/system.json"
+      panels: ["TimeSeries(EventBus처리량)", "Stat(적체)", "Table(Docker)", "Table(Scheduler)", "Stat×6(저장소)"]
+  additional_services: ["grafana", "prometheus", "cadvisor", "redis-exporter"]
+
+# ---------------------------------------------------------------------------
+# Phase 2-0: Telegram Bot 상세
+# ---------------------------------------------------------------------------
+telegram_bot:
+  status: "deferred_phase2_start"
+  library: "aiogram>=3.0"
+  location: "atlas/adapters/telegram/bot.py"
+  priority: "긴급 제어 1순위 — 화면 버튼 없음"
+  commands:
+    control: ["/halt", "/resume", "/stop"]
+    query:   ["/status", "/positions", "/pnl", "/orders"]
+    approval:["/approve {id}", "/reject {id}"]
+  push_notifications:
+    - trigger: "OrderExecutor.on_fill"
+      message: "체결: {symbol} {side} {qty}주 @{price}"
+    - trigger: "audit_events.severity IN (error, critical)"
+      message: "에러: {message}"
+    - trigger: "scheduler.15:50"
+      message: "일일 리포트: P&L {pnl} / Sharpe {sharpe}"

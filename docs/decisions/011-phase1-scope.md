@@ -110,9 +110,9 @@ atlas backtest <file> # 백테스트 실행
 | Path 3 Optimizer | Optuna 파라미터 최적화 | 수동 튜닝 | Phase 2 |
 | Path 4 전체 | Portfolio Management | RiskGuard 내장 간이 체크 | Phase 2 |
 | Path 6 전체 | Market Intelligence | 없음 (MarketContext 없이 동작) | Phase 2 |
-| Telegram Bot | S7 운영 인터페이스 | CLI | 필요시 |
+| Telegram Bot | S7 운영 인터페이스 | CLI | **Phase 2-0** (긴급 제어 채널) |
 | Discord | 알림 채널 | `audit_events` SQL 조회 | Phase 2 |
-| Grafana S1 대시보드 | Path 6 + 포트폴리오 시각화 | 없음 | Phase 2 |
+| Grafana S1 대시보드 | Path 6 + 포트폴리오 시각화 | 없음 | **Phase 2-0** (UI 인프라 선행) |
 | ApprovalGate | SEMI_AUTO 비동기 승인 | AUTO 또는 MANUAL만 | 필요시 |
 | SEMI_AUTO 모드 | 3-Mode 중 중간 | AUTO 또는 MANUAL만 | 필요시 |
 | Knowledge Fast-Path (R3) | 긴급 뉴스 반응 | 없음 | Phase 3 |

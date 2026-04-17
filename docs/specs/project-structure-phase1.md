@@ -314,7 +314,9 @@ ruff = "^0.3"                  # lint + format
 mypy = "^1.9"
 ```
 
-**Phase 2 추가 예정**: `redis`, `aiogram` (Telegram), `alembic` (DB migration)
+**Phase 2-0 추가 예정**: `fastapi`, `uvicorn`, `websockets`, `aiogram` (Telegram Bot), `prometheus-client`, `httpx`
+
+**Phase 2 추가 예정**: `redis`, `alembic` (DB migration)
 
 ---
 
@@ -450,3 +452,78 @@ Step 8: Acceptance 테스트 (1일)
 ---
 
 *Phase 1 프로젝트 폴더 구조 — atlas/ 패키지 + 7 최상위 폴더 + Hexagonal 의존 방향 보장*
+
+---
+
+## Phase 2-0 추가 폴더 구조
+
+Phase 1 합격 기준 5개 통과 후 아래 구조를 추가한다.
+
+```
+atlas/
+├── api/                              ← Phase 2-0 신규
+│   ├── __init__.py
+│   ├── main.py                       ← FastAPI app, uvicorn 포트 8000
+│   ├── dependencies.py               ← DB 세션·설정 의존성 주입
+│   ├── routers/
+│   │   ├── __init__.py
+│   │   ├── status.py                 ← GET /api/status · /health · /audit
+│   │   ├── trading.py                ← GET /api/positions · /pnl · /orders
+│   │   ├── control.py                ← POST /api/control/halt|resume|stop
+│   │   ├── config.py                 ← GET/POST /api/config
+│   │   ├── strategies.py             ← GET/POST /api/strategies/{name}
+│   │   ├── backtest.py               ← POST /api/backtest
+│   │   ├── approvals.py              ← GET/POST /api/approvals
+│   │   └── rules.py                  ← GET/POST /api/rules
+│   ├── websockets/
+│   │   ├── __init__.py
+│   │   ├── fsm_stream.py             ← WS /ws/fsm
+│   │   └── orders_stream.py          ← WS /ws/orders
+│   └── static/
+│       ├── index.html
+│       ├── control.html
+│       ├── policy.html
+│       ├── strategy.html
+│       ├── notify.html
+│       └── rules.html
+│
+└── adapters/
+    └── telegram/                     ← Phase 2-0 신규
+        ├── __init__.py
+        └── bot.py                    ← aiogram Bot
+
+grafana/                              ← Phase 2-0 신규 (저장소 루트)
+├── dashboards/
+│   ├── overview.json
+│   ├── p1_monitor.json
+│   ├── market_data.json
+│   ├── health.json
+│   └── system.json
+└── provisioning/
+    ├── datasources/postgres.yaml
+    └── dashboards/default.yaml
+```
+
+**docker-compose.yml Phase 2-0 추가 서비스**
+
+```yaml
+services:
+  # 기존 유지
+  postgres: ...
+
+  # Phase 2-0 추가
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+```

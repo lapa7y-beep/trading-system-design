@@ -168,43 +168,48 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 
 ## 5. 외곽 프레임 (v1에서 유지)
 
-### 5.1 Header (상단 고정)
+### 5.1 Header (상단 고정) — v2.4 기준
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ [ATLAS]  [LIVE ▾]     [감시 띠: ● ● ● ●]     [⏸ HALT]  [설정] │
+│ [ATLAS]  [LIVE ▾]     [감시 띠: ● ● ● ●]               [설정] │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 - ATLAS 로고 → 현재 카테고리 홈
-- 환경 표시 (LIVE/PAPER/SIM) — 색상으로 구분
-- 감시 띠 — Safeguards 4개 상태 표시. 클릭 → 감시 상세 진입
-- HALT 버튼 — 전체 거래 중지. 항상 1-click
-- 설정 — 사용자 설정, 테마
+- 환경 표시 (LIVE/PAPER/SIM) — LIVE=빨강, PAPER=주황, SIM=회색
+- 감시 띠 — Safeguards 4개 상태 점. 이상 시 점멸. 클릭 → Health 진입
+- 설정 — 테마·환경 설정
+
+> **HALT 버튼 제거 (v2.4)** — 긴급 제어는 Telegram `/halt` 우선.
+> 화면 버튼은 오조작 위험이 있고, 장중 긴급 상황에서는
+> 폰 Telegram이 웹보다 빠름. `§10.7` 참조.
 
 ### 5.2 Sidebar (좌측)
 
 ```
-┌────────────┐
-│ ◆ 거래      │ ← 1-click 카테고리
-│   Overview  │
-│   Trading   │
-│   Portfolio │
-│            │
-│ ◆ 거래 지원  │
-│   Strategy  │
-│   Knowledge │
-│   Mkt data  │
-│            │
-│ ◆ 설계      │
-│   Canvas    │
-│   CodeGen   │
-│   Validator │
-│   Docs      │
-└────────────┘
+┌──────────────────────┐
+│ ◆ 거래         [2-0] │
+│   Overview            │
+│   P1 Trading          │
+│   P4 Portfolio        │
+│                      │
+│ ◆ 거래 지원    [2-0] │
+│   Strategy            │
+│   Knowledge           │
+│   Market data         │
+│                      │
+│ ◆ 설계         [2+]  │ ← 잠금
+│   PathCanvas  🔒     │
+│   Code Gen    🔒     │
+│   Validator   🔒     │
+│   Docs        🔒     │
+└──────────────────────┘
 ```
 
-감시는 Sidebar에 없음 — Header 띠에서 접근.
+- 감시는 Sidebar에 없음 — Header 띠에서 접근.
+- `[2-0]` — Phase 2-0 구현 대상.
+- `[2+]` 🔒 — Phase 2+ 구현 전까지 클릭 시 "Phase 2+ 기능입니다" 안내.
 
 ### 5.3 Layout
 
@@ -220,27 +225,36 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 
 ---
 
-## 6. 공통 설계 원칙 (v1에서 유지, 일부 수정)
+## 6. 공통 설계 원칙 (v2.4 기준)
 
 1. **대기 없음 / 즉시 표시** — 스피너 대신 점진적 채움. 연결은 백그라운드.
-2. **시스템이 다음 단계 제시** — 카테고리 횡단 시 자동 제안.
-3. **3 게이트 보안** — 정책 변경은 Validator + 4-layer 승인 + Audit 통과 필수.
-4. **컨텍스트 전달 = URL 파라미터** — 화면 간 이동 시 `?entity=X`로 대상 자동 세팅.
-5. **감시는 항상 위에서** — Header 띠로 1-click 비상 접근. 어느 화면이든.
-6. **거래 지원 참조 = 사이드 노트** — Knowledge 조회 결과를 거래 화면에 일시 패널로 표시.
+2. **시스템이 다음 단계 제시** — 작업 완료 후 toast 제안. HTML 화면만 해당 (Grafana 불가).
+3. **보안 게이트 — Phase별 적용**
+   - Phase 1: pydantic Validator 통과 → YAML 저장. 승인 없음.
+   - Phase 2-0: Validator + Audit 2단계. Telegram ApprovalGate 연동.
+   - Phase 2+: Validator + Telegram ApprovalGate + Audit 3 게이트 완성.
+4. **컨텍스트 전달 = URL 파라미터** — 화면 간 이동 시 `?symbol=X` 등으로 대상 자동 세팅.
+5. **감시는 항상 위에서** — Header 띠로 1-click Health 진입. 어느 화면이든.
+6. **거래 지원 참조 = 사이드 노트** — Knowledge 결과를 거래 화면에 일시 패널로 표시 (Phase 3).
+7. **긴급 제어는 Telegram 우선** — HALT/KILL은 화면 버튼 없음. Telegram `/halt`가 유일한 긴급 채널.
+8. **설계 화면은 Phase 2+ 잠금** — Sidebar 표시되나 클릭 시 Phase 안내. 오조작 방지.
 
 ---
 
-## 7. 카테고리 간 이동 규칙
+## 7. 카테고리 간 이동 규칙 (v2.4 기준)
 
-| 횡단 방향 | 성격 | UX 장치 |
-|-----------|------|---------|
-| 거래 ↔ 거래 | 내부 이동 | Sidebar 클릭 또는 Overview 카드 |
-| 거래 → 감시 | 비상 확인 | Header 감시 띠 클릭 |
-| 거래 → 거래 지원 | 참조 | 카드의 🔍 아이콘 (사이드 노트) 또는 Sidebar |
-| 거래 지원 → 거래 | 전략 적용 | 전략 활성화 후 자동 제안 toast |
-| 설계 → 거래/거래 지원 | 배포 | Code Generator 완료 후 자동 제안 toast |
-| → 설계 | 수동만 | Sidebar 통해 수동 이동. 자동 트리거 없음. |
+| 횡단 방향 | 성격 | UX 장치 | 구현 도구 |
+|-----------|------|---------|---------|
+| 거래 ↔ 거래 | 내부 이동 | Sidebar 클릭 또는 Overview 카드 | Grafana link / HTML |
+| 거래 → 감시 | 비상 확인 | Header 감시 띠 클릭 → Health | Grafana |
+| 거래 → 거래 지원 | 참조 | Sidebar 또는 카드 🔍 아이콘 | Grafana link |
+| 거래 지원 → 거래 | 전략 적용 | 전략 저장 후 toast 제안 | HTML toast만 |
+| 설계 → 운영 | 배포 (Phase 2+) | Code Generator 완료 후 toast | HTML toast만 |
+| → 설계 | 수동만 | Sidebar (Phase 2+ 잠금 해제 후) | — |
+| 긴급 제어 | HALT/KILL | Telegram `/halt` `/kill` | Telegram Bot |
+
+> **toast 구현 범위**: Grafana는 toast 불가. HTML 화면(`control.html`, `strategy.html` 등)만 toast 사용.
+> Grafana에서의 화면 전환은 패널 내 `Data links` 기능으로 대체.
 
 ---
 
@@ -1111,3 +1125,143 @@ HTML static/  ──────────▶ React build 결과물
 | Rules 전체 | — | 2 |
 | 설계 4화면 전체 | — | 2+ |
 
+
+---
+
+## 13. Phase별 화면 구현 가이드 (v2.4 신규)
+
+> 어떤 Phase에서 무엇을 만들고, 어떤 도구로 만드는지 전체 로드맵.
+
+---
+
+### 13.1 Phase 1 — CLI 전용, 화면 없음
+
+| 화면 역할 | CLI 명령 | 비고 |
+|----------|---------|------|
+| Overview | `atlas status` / `atlas pnl` / `atlas positions` | — |
+| P1 Monitor | `atlas status` / `atlas orders` | — |
+| P1 Control | `atlas halt` / `atlas resume` / `atlas stop` | — |
+| P1 Backtest | `atlas backtest <file>` | — |
+| Health / Market data | `atlas status` | — |
+| 감사 로그 | `atlas audit` | — |
+
+합격 기준 5개 통과 → **Phase 2-0 진입**.
+
+---
+
+### 13.2 Phase 2-0 — UI 인프라 구축 (순서대로)
+
+**순서**: ① FastAPI → ② Grafana 패널 → ③ HTML 제어화면 → ④ Telegram Bot
+
+#### ① FastAPI 서버 (`atlas/api/`)
+
+```
+atlas/api/
+├── main.py               ← FastAPI app, uvicorn 포트 8000
+├── dependencies.py       ← DB 세션, 설정 의존성
+├── routers/
+│   ├── status.py         ← GET /api/status · /api/health · /api/audit
+│   ├── trading.py        ← GET /api/positions · /api/pnl · /api/orders
+│   ├── control.py        ← POST /api/control/halt|resume|stop
+│   ├── config.py         ← GET/POST /api/config
+│   ├── strategies.py     ← GET/POST /api/strategies/{name}
+│   ├── backtest.py       ← POST /api/backtest  GET /api/backtest/{id}
+│   ├── approvals.py      ← GET/POST /api/approvals/{id}/approve|reject
+│   └── rules.py          ← GET/POST /api/rules
+├── websockets/
+│   ├── fsm_stream.py     ← WS /ws/fsm   — FSMState 변화 push
+│   └── orders_stream.py  ← WS /ws/orders — 체결/거절 이벤트 push
+└── static/               ← HTML 제어 화면 (React 전환 전)
+    ├── index.html         ← 메인 레이아웃
+    ├── control.html       ← HALT / Resume / Stop 버튼
+    ├── policy.html        ← config.yaml 편집 폼
+    ├── strategy.html      ← 전략 편집 + Backtest + History
+    ├── notify.html        ← 채널 설정 ON/OFF
+    └── rules.html         ← 규칙 목록 + 승인 보조
+```
+
+**3원칙**:
+- HTML은 `fetch()` / `WebSocket` 호출과 표시만. 로직 없음.
+- 제어 명령은 `control_file.py` 경유 — CLI와 동일 경로.
+- 모든 응답 JSON — HTML/React 동일 엔드포인트 재사용.
+
+#### ② Grafana 대시보드 (`grafana/dashboards/`)
+
+| 파일 | 담당 화면 | 데이터 소스 |
+|------|---------|-----------|
+| `overview.json` | Overview KPI·포지션·체결·전략성과 | PostgreSQL |
+| `p1_monitor.json` | P1 Monitor FSM·OHLCV·주문로그 | PostgreSQL + TimescaleDB |
+| `market_data.json` | Market data 수집상태·OHLCV미리보기 | PostgreSQL |
+| `health.json` | Health Safeguards·계좌일관성·감사로그 | PostgreSQL |
+| `system.json` | System EventBus·Docker·Scheduler·저장소 | PostgreSQL + Prometheus |
+
+**docker-compose 추가**: `grafana`, `prometheus`, `cadvisor`, `redis-exporter`
+
+#### ③ HTML 제어 화면 구현 원칙
+
+```
+control.html:  HALT/Resume/Stop → POST /api/control/*
+policy.html:   config 폼 → GET/POST /api/config
+strategy.html: 파일 편집 → GET/POST /api/strategies/{name}
+               백테스트 → POST /api/backtest
+notify.html:   채널 설정 → POST /api/config (notify 섹션)
+rules.html:    승인 목록 → GET /api/approvals/pending
+               승인/거절 → POST /api/approvals/{id}/approve|reject
+```
+
+#### ④ Telegram Bot (`atlas/adapters/telegram/bot.py`)
+
+| 명령 | 동작 | 우선순위 |
+|------|------|---------|
+| `/halt` | `POST /api/control/halt` | **긴급 제어 1순위** |
+| `/resume` | `POST /api/control/resume` | — |
+| `/stop` | `POST /api/control/stop` | — |
+| `/status` | `GET /api/status` 응답 | — |
+| `/positions` | `GET /api/positions` 응답 | — |
+| `/pnl` | `GET /api/pnl` 응답 | — |
+| `/approve {id}` | `POST /api/approvals/{id}/approve` | ApprovalGate |
+| `/reject {id}` | `POST /api/approvals/{id}/reject` | ApprovalGate |
+
+push 알림: 체결 / 에러(error+critical) / 일일 리포트(15:50)
+
+#### Phase 2-0 완료 기준
+
+| 항목 | 확인 방법 |
+|------|---------|
+| FastAPI 기동 | `curl http://localhost:8000/api/status` 200 응답 |
+| Grafana 패널 5개 | 브라우저 접속 + 데이터 표시 |
+| HTML 제어 화면 | HALT 버튼 클릭 → `atlas status` 확인 |
+| Telegram Bot | `/status` 명령 응답 + 체결 알림 수신 |
+| WS 스트림 | FSM 상태 변화 실시간 수신 |
+
+---
+
+### 13.3 Phase 2A~2D — 기능 확장
+
+| Phase | 추가 항목 | 화면 변화 |
+|-------|---------|---------|
+| 2A | Path 6 Market Intelligence | Market data 화면 강화 (수급/호가/VI) |
+| 2B | Path 4 Portfolio | P4 Portfolio Grafana 대시보드 완성 |
+| 2C | Screener + WatchlistManager | Market data 화면에 종목 선정 UI 추가 |
+| 2D | 실전 전환 | Health 화면 LIVE 환경 경고 강화 |
+
+---
+
+### 13.4 React 전환 (선택적, 시기 미정)
+
+```
+전환 방법:
+  1. React 프로젝트 생성 (Vite + TypeScript 권장)
+  2. FastAPI API 그대로 사용 — 백엔드 무변경
+  3. atlas/api/static/ → React build 결과물로 교체
+  4. Grafana 패널 중 인터랙션 필요한 것만 순차 React 교체
+
+전환 비용:
+  - 백엔드 재설계 없음
+  - Grafana → React 차트 컴포넌트 교체
+  - HTML 파일 → React 컴포넌트 재작성
+
+전환 조건:
+  - Grafana + HTML 운영 안정화 완료
+  - React 학습 완료 또는 Claude Code 활용 결정
+```

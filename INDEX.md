@@ -161,6 +161,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-17 | **2차 교차 검증** — adapters.md 메서드 커버리지 6건 보완 (v1.0→v1.1). 검증 보고서 v1.1 업데이트. |
 | 2026-04-17 | **3차 교차 검증** — 71항목 자동 검증 스크립트 실행. CSVReplayAdapter unsubscribe 1건 보완 (v1.1→v1.2). |
 | 2026-04-17 | **4차 교차 검증** — 211항목 자동 검증. config.md backtest 섹션 추가 (v1.0→v1.1), struct.md OrderType 추가 (v1.0→v1.1). 실질 불일치 0건. |
+| 2026-04-17 | **screen-arch v2.4** — Header HALT제거·Sidebar잠금, §6 원칙8개, §7 toast범위, §13 Phase구현가이드, scope·project-structure·graph_ir 보완 |
 | 2026-04-17 | **screen-arch v2.3** — §10 구현도구 기준 전면 재작성 (Grafana/HTML/Telegram 분리, 버튼 위치 확정) |
 | 2026-04-17 | **FastAPI 레이어 + 프론트엔드 스택 확정** — graph_ir v1.1.0, screen-arch v2.2, scope Phase 2-0 추가 |
 | 2026-04-17 | **화면 구조 v2 전면 재편** — 4카테고리 17화면 → 3카테고리+횡단감시 14화면. P1+P4 거래 쌍, Strategy+Backtest 통합, 감시 횡단 레이어. |
