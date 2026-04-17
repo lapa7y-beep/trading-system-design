@@ -35,7 +35,7 @@
 | 11 | Pre-Order 7체크 | SSoT = blueprint = config.md | ✅ |
 | 12 | 합격 기준 5개 | SSoT = test.md = boot.md = cli-design | ✅ |
 | 13 | config 키 (halt_timeout, broker.mode 등) | config.md = boot.md = error.md = adapters.md | ✅ |
-| 14 | Screens 17개 (W3+D4+O3+Op7) | screen-arch.md | ✅ |
+| 14 | Screens 14개 (감시4+거래3+거래지원3+설계4) | screen-arch.md v2 | ✅ (v2 재편) |
 | 15 | Severity 4단계 (info/warn/error/critical) | error.md 통합 기준 | ✅ |
 | 16 | 4 Safeguards | SSoT = boot.md §8 | ✅ |
 | 17 | KIS 에러 코드 | blueprint = error.md §11 | ✅ |

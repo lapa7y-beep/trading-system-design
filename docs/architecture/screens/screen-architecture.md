@@ -1,514 +1,292 @@
-# ATLAS Screen Architecture
+# ATLAS Screen Architecture v2
 
-> 상태: draft v1.3
+> 상태: confirmed
 > 최종 수정: 2026-04-17
-> 목적: 전체 화면 구조의 고정점(anchor). 외곽 프레임·흐름·세부 디자인은 이 문서를 기준으로 작업.
+> 변경 사유: 4 카테고리 → 3 카테고리 + 횡단 감시. Path 쌍 기반 재분류.
 
 ---
 
-## 1. 본질 — 4 최상위 카테고리
+## 1. 분류 원칙
 
-ATLAS 콘솔은 4개의 최상위 카테고리로 구성된다.
+### 1.1 왜 바꿨는가
 
-```
-ATLAS Console
-│
-├──  Watchdog       ← 메타 감시 (모든 카테고리 위)
-├──  Design         ← 시스템 자체를 만드는 일
-├──  Ontology       ← 독립 지식 자산
-└── ⚡ Operating      ← 설계의 결과물을 돌리는 일
-```
+v1의 4 카테고리(Watchdog / Operating / Design / Ontology)는 두 가지 문제가 있었다.
 
-### 경계 판정 기준
+- **5 Paths와 4 Categories의 축이 다르다.** Path는 백엔드 실행 단위(데이터 흐름·실행 시점), Category는 사용자 작업 의도. 이 둘을 1:1로 맞추려 해서 Operating에 P1+P4가 혼재하고, P5(감시운영)가 이름과 위치가 불일치했다.
+- **P1(실시간매매)과 P4(포트폴리오)는 한 쌍이다.** P1이 개별 매매를 실행하고 P4가 전체 포지션을 관리한다. P4의 리밸런싱 주문은 P1의 OrderGate → ExecEngine을 재사용한다. 같은 카테고리에 있어야 한다.
 
-| 질문 | Watchdog | Design | Ontology | Operating |
-|------|----------|--------|----------|-----------|
-| 실시간 데이터를 다루는가? | 감시만 | ❌ | ❌ | ✅ 핵심 |
-| 사용자가 '만드는' 행위인가? | ❌ | ✅ 핵심 | 구축만 | ❌ |
-| 독립 자산으로 축적되는가? | 로그만 | ❌ | ✅ 핵심 | ❌ |
-| 시스템이 꺼져도 의미 있는가? | 로그 | 설계도 | ✅ 지식 | ❌ |
-| 모든 카테고리를 감시하는가? | ✅ 핵심 | ❌ | ❌ | ❌ |
+### 1.2 새 분류 기준
 
-### 인과 관계
+| 기준 | 질문 |
+|------|------|
+| 거래 | 돈이 움직이는가? |
+| 거래 지원 | 거래가 잘 되도록 준비하는 것인가? |
+| 설계 | ATLAS 시스템 자체를 만드는 것인가? |
+| 감시 | 전부 정상인가? |
+
+감시는 카테고리가 아니라 **횡단 레이어**다. 거래·거래 지원·설계 모두를 관찰하고 보호한다.
+
+### 1.3 백엔드 구조와 화면 구조의 관계
 
 ```
-Design → Code Generator → Operating
-Ontology ← Build ← 외부 데이터
-Ontology → Consume → Operating (트레이딩 결정 보조)
-                   → Design (전략 설계 보조)
-Watchdog → 모든 카테고리 감시 → 이상 시 Master pause/kill
-```
+백엔드 (HR-DAG)              화면 (사용자 관점)
+━━━━━━━━━━━━━━━━━            ━━━━━━━━━━━━━━━━━━━━━
+ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
+├── 설계                     │                       │
+└── 운영                     │ 거래 | 거래 지원 | 설계 │
+    └── 감시/제어 (P5 껍질)   │                       │
+        ├── 거래 (P1+P4)     └───────────────────────┘
+        └── 거래 지원 (P2,P3)
 
----
-
-## 2. 화면 목록 — 17개
-
-### 2.1  Watchdog (3개 + Header 띠)
-
-| ID | 화면 | 역할 |
-|----|------|------|
-| W1 | Health Dashboard | 전 컴포넌트 헬스맵 + Anomaly 통합 |
-| W2 | Rule Editor | 감시 룰 편집 |
-| W3 | Rule Test | 룰 검증 (dry-run) |
-
-### 2.2  Design (4개)
-
-| ID | 화면 | 역할 |
-|----|------|------|
-| D1 | PathCanvas | Graph IR 시각 편집 (L2-L3 fold/unfold) + 실시간 Validator |
-| D2 | Code Generator | IR → Python 코드 생성 + 최종 Validator |
-| D3 | Strategy Editor | 전략 .py 코드 작성 |
-| D4 | Docs Editor | 설계 문서 편집 (Git 자동 commit) |
-
-### 2.3  Ontology (3개)
-
-| ID | 화면 | 역할 |
-|----|------|------|
-| O1 | Schema | 온톨로지 노드/엣지 타입 정의 |
-| O2 | Explore | 그래프 탐색/검색/인과추론 |
-| O3 | Quality | 지식 품질 검증/정제 |
-
-### 2.4 ⚡ Operating (7개)
-
-| ID | 화면 | 역할 | 탭 구조 |
-|----|------|------|---------|
-| Op0 | Overview | 진입점. 헬스맵 + 손익 + 포지션 요약 | 없음 (단일) |
-| Op1 | P1 Trading | 실시간 매매 | Monitor / Control / Policy / Test |
-| Op2 | P4 Portfolio | 포트폴리오 관리 | Monitor / Control / Policy / Test |
-| Op3 | Ontology Build | 지식 파이프라인 운영 | Monitor / Control / Policy / Test |
-| Op4 | Market Data | 시세 수집 인프라 | Monitor / Control / Policy / Test |
-| Op5 | Notify | 알림 채널 관리 | Monitor / Control / Policy / Test |
-| Op6 | System | 시스템 인프라 | Monitor / Control / Policy / Test |
-
-### 2.5 4탭 역할 (Operating Path/Infra 공통)
-
-| 탭 | 성격 | 예시 |
-|----|------|------|
-| Monitor | 읽기 전용, 실시간 상태 | FSM 상태도, 체결 로그, 시세 차트 |
-| Control | 즉시 실행 쓰기 | halt/resume, 수동 주문, 강제 청산 |
-| Policy | 사전 정책 쓰기 | 리스크 한도, 스케줄, 파라미터 |
-| Test | 검증 | 백테스트 실행, dry-run, 시뮬레이션 |
-
-### 2.6 수치 요약
-
-```
-Watchdog:   3개 + Header 띠
-Design:     4개
-Ontology:   3개
-Operating:  7개 (1 Overview + 6 Path/Infra × 4탭)
-총 화면:    17개
+백엔드 진실: P5는 모든 운영을 감싸는 껍질 (선택 B)
+화면 표현: 감시는 횡단 오버레이 (선택 C)
 ```
 
 ---
 
-## 3. 관계 — 데이터 흐름과 설계 원칙
+## 2. 화면 구조
 
-### 3.1 5 Paths → 4 카테고리 재배치
+### 2.0 감시 횡단 (P5 — Header 오버레이, 항상 위)
 
-| Path | 카테고리 | 근거 |
-|------|----------|------|
-| Path 1 Realtime Trading | Operating (Op1) | 실시간 매매 |
-| Path 2 Knowledge Building | Ontology (O1-O3) + Operating (Op3) | 구축=Ontology, 운영=Operating |
-| Path 3 Strategy Development | Design (D1-D4) | 만들기 |
-| Path 4 Portfolio Management | Operating (Op2) | 돌리기 |
-| Path 5 Watchdog & Operations | Watchdog (W1-W3) | 감시 |
-| Path 6 Market Intelligence | Operating (Op4) | 인프라 |
+어느 화면에서든 접근 가능. 카테고리가 아닌 레이어.
 
-### 3.2 5개 설계 원칙
+| 화면 | Path 노드 | 역할 |
+|------|-----------|------|
+| Health | Guardian (HealthMonitor, AccountReconciler, AuditLogger) | 전체 시스템 상태 한눈에. Safeguards 4개 상태. Kill switch. |
+| System | EventBus (EventRouter, EventPersister) + StoragePort (인프라) | EventBus 흐름/적체, DB/Redis 연결, Docker 상태, Scheduler 현황 |
+| Notify | Operator.Notifier | 알림 채널(Telegram/Discord) 상태, 알림 이력, 채널 설정 |
+| Rules | Guardian 규칙 + Operator.ApprovalGate | Watchdog 규칙 관리, 승인 대기 목록, 승인 이력 |
 
-1. **데이터의 시간성 = 카테고리** — 실시간→Operating, 자산→Ontology, 만들기→Design, 항상→Watchdog
-2. **마우스 동선 = 사용 빈도** — Master 버튼 1-click, Overview 진입점, Path 탭 1-click, 드문 작업 2-click
-3. **일관성 = 학습 비용 감소** — Operating 7화면 모두 4탭 통일
-4. **읽기와 쓰기를 분리한다** — Monitor↔Control 탭 분리로 실수 방지
-5. **Code Generator가 Design과 Operating을 잇는다** — 설계의 산출물이 운영의 입력이 되는 유일한 게이트
+**Operator 서브노드 배치:**
+- Notifier → 감시(Notify) — 주 화면
+- ApprovalGate → 감시(Rules) — 주 화면. 거래(P1 Control)에서는 읽기 전용 참조
+- Scheduler → 감시(System) — 주 화면. 배치 스케줄 현황/설정
+- ConfigManager → 설계(Docs/설정) — 주 화면. 감시(System)에서는 런타임 파라미터 읽기 전용
 
-### 3.3 Global Header 띠
+### 2.1 거래 (P1+P4 — 돈이 움직이는 곳)
 
-어느 화면에 있든 항상 표시:
+| 화면 | Path 노드 | 역할 |
+|------|-----------|------|
+| Overview | — (집계 뷰) | 거래 KPI 요약: 일간 P&L, 포지션 현황, 체결 건수, 전략별 성과 |
+| P1 Trading | DataIngest, SignalFusion, OrderGate, ExecEngine | 4탭 유지: Monitor / Control / Policy / Test |
+| P4 Portfolio | PortfolioManager | 성과 분석, 비중 조정, 리밸런싱, 리포트 |
 
-```
-[≡] Logo · Env(LIVE/PAPER/SIM) · Clock · Safeguards  · [Pause] [Reconcile] [Kill]
-```
+**Overview vs Health 경계:**
+- Overview = 거래 KPI (P&L, 포지션, 체결) — "얼마 벌었나"
+- Health = 시스템 상태 (Safeguards, 연결, 프로세스) — "정상 동작하나"
 
-- 환경 Pill: LIVE=red, PAPER=amber, SIM=gray
-- Safeguards: 이상 시 해당 점 빨간색 점멸
-- Master 버튼 3개: 모든 카테고리에서 즉시 접근
+### 2.2 거래 지원 (P2+P3+Market data — 거래를 뒷받침하는 곳)
 
----
+| 화면 | Path 노드 | 역할 |
+|------|-----------|------|
+| Strategy | StrategyWorkbench + StrategyValidator | 전략 개발 + 백테스트 통합. 서브탭: Edit / Backtest / Optimize / History |
+| Knowledge | KnowledgeIngest, KnowledgeEngine | 서브탭: Build(수집/파싱) / Explore(검색/조회) / Quality(무결성) |
+| Market data | DataIngest 수집 설정 + StoragePort(TimeSeries) | 수집 종목 관리, OHLCV 저장 상태, 수집 설정 |
 
-## 4. 외곽 프레임 (방향 A)
+**Strategy + Backtest 통합 근거:**
+- 사용 흐름: 전략 작성 → 백테스트 → 결과 확인 → 수정 → 재실행
+- 별도 화면이면 왕복 발생. 서브탭으로 통합하면 한 화면 내에서 순환.
+- 화면 수: 4 → 3. 마우스 동선 개선.
 
-### 4.1 전체 레이아웃
+### 2.3 설계 (시스템 전체를 만드는 곳)
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│ [≡] ATLAS · [PAPER ◆] · 09:15:32 KST · ●●●● · [⏸][][] │  ← Header (48px)
-├────────┬─────────────────────────────────────────────────────┤
-│        │                                                     │
-│      │                                                     │
-│  W1    │                                                     │
-│  W2    │              Workspace                              │
-│  W3    │              (화면 본문)                              │
-│  ──    │                                                     │
-│      │                                                     │
-│  D1~D4 │                                                     │
-│  ──    │                                                     │
-│      │                                                     │
-│  O1~O3 │                                                     │
-│  ──    │                                                     │
-│  ⚡    │                                                     │
-│  Op0~6 │                                                     │
-│        │                                                     │
-├────────┴─────────────────────────────────────────────────────┤
-│ WS: ● connected · Build: v0.1.0 · Last save: 2s ago         │  ← Footer (24px)
-└──────────────────────────────────────────────────────────────┘
-         ↑
-    Sidebar (200px, collapsible → 48px 아이콘)
-```
+| 화면 | 역할 |
+|------|------|
+| PathCanvas | 5 Path 전체의 노드/엣지 설계. L2 접기 ↔ L3 펼치기. Graph IR 편집. |
+| Code Generator | Graph IR → 실행 가능 코드 변환. 변환 결과 미리보기. |
+| Validator | 설계 규칙 위반 검출. 실시간 피드백. |
+| Docs | 설계 문서 편집/조회. ConfigManager 설정 관리. System Manifest 동기화. |
 
-### 4.2 결정 사항 (A-1 ~ A-4)
+**설계 ≠ P3.** 설계는 ATLAS 시스템 전체를 만드는 메타 레이어. P3 전략개발은 거래 지원.
 
-| ID | 결정 | 내용 |
-|----|------|------|
-| A-1 | Sidebar 방식 | 4 카테고리 아코디언. 활성 카테고리만 화면 목록 펼침 |
-| A-2 | 카테고리 전환 | Sidebar 카테고리 아이콘 클릭. 전환 시 해당 카테고리 첫 화면 자동 진입 |
-| A-3 | 탭 표시 위치 | Workspace 상단 (화면 제목 아래). Operating Path/Infra만 |
-| A-4 | Footer 정보 | WS 연결 상태 + 빌드 버전 + 마지막 저장 시각 |
+**Phase 매핑:**
+- Phase 1: 설계 카테고리 전체 미구현. CLI + MockBroker + 수동 전략.
+- Phase 2+: PathCanvas → Code Generator → Validator 순차 구현.
 
 ---
 
-## 5. 화면 전환 흐름 (방향 B)
+## 3. 화면 집계
 
-### 5.1 7가지 핵심 시나리오
+```
+감시 횡단:   4 화면 (Health, System, Notify, Rules)
+거래:       3 화면 (Overview, P1 Trading, P4 Portfolio)
+거래 지원:   3 화면 (Strategy, Knowledge, Market data)
+설계:       4 화면 (PathCanvas, Code Generator, Validator, Docs)
+━━━━━━━━━━━━━━━━━━━━━
+총:         14 화면 (v1 대비 17 → 14, 3개 감소)
+```
 
-| # | 시나리오 | 진입 | 경로 | 종착 |
-|---|---------|------|------|------|
-| 1 | 아침 점검 | Op0 Overview | Health map 확인 → 빨간 카드 클릭 | Op1 Trading Monitor |
-| 2 | 비상 대응 | 어디든 | Header ●빨강 클릭 → W1 Health | 해당 Path Control 탭 |
-| 3 | 전략 배포 | D3 Strategy Editor | 저장 → D2 Code Generator → 검증 통과 | Op1 Trading Policy 탭 |
-| 4 | 리스크 한도 변경 | Op1 Policy 탭 | 파라미터 수정 → Validator → Save | 동일 화면 (toast 확인) |
-| 5 | 지식 참조 | Op1 Monitor 탭 | 종목 카드  클릭 → O2 Explore | 사이드 노트로 복귀 |
-| 6 | 설계 변경 | D1 PathCanvas | 노드 추가/수정 → Validator 통과 → 저장 | Git commit 완료 |
-| 7 | 시스템 시작 | 브라우저 열기 | 로딩 → 마지막 화면 복원 | 이전 세션 상태 |
+감소 이유:
+- Strategy + Backtest 통합 (2 → 1)
+- Ontology 3화면(Build/Explore/Quality) → Knowledge 1화면 + 서브탭
+- Watchdog 카테고리 해체 → 감시 횡단으로 재편
 
-### 5.2 4가지 전환 패턴
+---
 
-| 패턴 | 트리거 | 전환 방식 | 예시 |
-|------|--------|----------|------|
-| Click-Navigate | 사용자 의도적 클릭 | Sidebar 또는 카드 링크 | Op0 → Op1 |
-| Alert-Jump | 시스템 이상 감지 | Header 점멸 → 1-click | 어디든 → W1 |
-| Flow-Suggest | 작업 완료 후 자동 제안 | Toast + 링크 버튼 | D2 → Op1 (배포 후) |
-| Context-Pass | 컨텍스트 전달 이동 | URL 파라미터 | Op1 → O2 (?symbol=005930) |
+## 4. HR-DAG 노드 → 화면 매핑
 
-### 5.3 6가지 공통 설계 원칙
+### 4.1 13개 인터페이스 노드
+
+| 인터페이스 노드 | Path | 화면 | 카테고리 |
+|----------------|------|------|----------|
+| DataIngest | P1 | P1 Trading (Monitor) + Market data | 거래 + 거래 지원 |
+| SignalFusion | P1 | P1 Trading (Monitor) | 거래 |
+| OrderGate | P1 | P1 Trading (Control) | 거래 |
+| ExecEngine | P1 | P1 Trading (Control) | 거래 |
+| KnowledgeIngest | P2 | Knowledge (Build) | 거래 지원 |
+| KnowledgeEngine | P2 | Knowledge (Explore, Quality) | 거래 지원 |
+| StrategyWorkbench | P3 | Strategy (Edit) | 거래 지원 |
+| StrategyValidator | P3 | Strategy (Backtest, Optimize) | 거래 지원 |
+| PortfolioManager | P4 | P4 Portfolio | 거래 |
+| EventBus | P5 | System | 감시 |
+| Guardian | P5 | Health + Rules | 감시 |
+| Operator | P5 | Notify + Rules + System(Scheduler) | 감시 (+설계 ConfigManager) |
+| StoragePort | 공유 | System + Market data | 감시 + 거래 지원 |
+
+### 4.2 Four Critical Safeguards
+
+| 취약점 | 화면 위치 |
+|--------|----------|
+| 중복주문방지 | 거래 → P1 Trading (Control) |
+| 상태계좌일관성 | 거래 → P1 Trading + 감시 → Health |
+| 이벤트내구성 | 감시 → System |
+| 명령제어보안 | 감시 → Rules + Notify |
+
+### 4.3 6개 공유 저장소
+
+| 저장소 | 상태 확인 화면 | 데이터 사용 화면 |
+|--------|---------------|-----------------|
+| TimeSeries DB | 감시(System) | 거래 지원(Market data), 거래(P1 Monitor) |
+| Knowledge Graph | 감시(System) | 거래 지원(Knowledge) |
+| Strategy Registry | 감시(System) | 거래 지원(Strategy) |
+| Position State | 감시(System) | 거래(Overview, P1, P4) |
+| Event Log | 감시(System) | 감시(Health, Rules) |
+| Config | 설계(Docs) | 감시(System 읽기 전용) |
+
+---
+
+## 5. 외곽 프레임 (v1에서 유지)
+
+### 5.1 Header (상단 고정)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ [ATLAS]  [LIVE ▾]     [감시 띠: ● ● ● ●]     [⏸ HALT]  [설정] │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- ATLAS 로고 → 현재 카테고리 홈
+- 환경 표시 (LIVE/PAPER/SIM) — 색상으로 구분
+- 감시 띠 — Safeguards 4개 상태 표시. 클릭 → 감시 상세 진입
+- HALT 버튼 — 전체 거래 중지. 항상 1-click
+- 설정 — 사용자 설정, 테마
+
+### 5.2 Sidebar (좌측)
+
+```
+┌────────────┐
+│ ◆ 거래      │ ← 1-click 카테고리
+│   Overview  │
+│   Trading   │
+│   Portfolio │
+│            │
+│ ◆ 거래 지원  │
+│   Strategy  │
+│   Knowledge │
+│   Mkt data  │
+│            │
+│ ◆ 설계      │
+│   Canvas    │
+│   CodeGen   │
+│   Validator │
+│   Docs      │
+└────────────┘
+```
+
+감시는 Sidebar에 없음 — Header 띠에서 접근.
+
+### 5.3 Layout
+
+```
+┌─────────────────────────────────────────┐
+│ Header (감시 띠 포함)                    │
+├──────────┬──────────────────────────────┤
+│ Sidebar  │ Main content                 │
+│          │                              │
+│          │                              │
+└──────────┴──────────────────────────────┘
+```
+
+---
+
+## 6. 공통 설계 원칙 (v1에서 유지, 일부 수정)
 
 1. **대기 없음 / 즉시 표시** — 스피너 대신 점진적 채움. 연결은 백그라운드.
 2. **시스템이 다음 단계 제시** — 카테고리 횡단 시 자동 제안.
 3. **3 게이트 보안** — 정책 변경은 Validator + 4-layer 승인 + Audit 통과 필수.
 4. **컨텍스트 전달 = URL 파라미터** — 화면 간 이동 시 `?entity=X`로 대상 자동 세팅.
-5. **사이드 노트 = 일시 참조** — Ontology 참조 결과를 Operating에 일시 패널로 표시.
-6. **Watchdog는 항상 위에서** — 어느 화면이든 Header 띠로 1-click 비상 접근.
+5. **감시는 항상 위에서** — Header 띠로 1-click 비상 접근. 어느 화면이든.
+6. **거래 지원 참조 = 사이드 노트** — Knowledge 조회 결과를 거래 화면에 일시 패널로 표시.
 
-### 5.4 카테고리 간 이동 규칙
+---
+
+## 7. 카테고리 간 이동 규칙
 
 | 횡단 방향 | 성격 | UX 장치 |
 |-----------|------|---------|
-| Operating ↔ Operating | 내부 이동 | Sidebar 클릭 또는 Overview Health map 카드 |
-| Operating → Watchdog | 감시 상세 | Header Safeguards 점 또는 Sidebar 빨간 점 |
-| Design → Operating | 배포 | Code Generator 통과 후 자동 제안 toast |
-| Operating → Ontology | 참조 | 카드의  아이콘 클릭 (URL 컨텍스트 전달) |
-| Ontology → Operating | 복귀 | 기본 복귀 또는 사이드 노트 담기 |
-| → Design | 사용자 의도만 | Sidebar 통해 수동 이동 |
-
-### 5.5 세션 컨텍스트 규칙
-
-- **localStorage 유지**: 마지막 화면, Sidebar 상태, 탭 상태, UI 토글
-- **세션 메모리만**: 사이드 노트, 작성 중 편집, Validator 진행 상태
-- **저장 안 함 (매번 실시간)**: 환경(LIVE/PAPER/SIM), 4 Safeguards 상태
+| 거래 ↔ 거래 | 내부 이동 | Sidebar 클릭 또는 Overview 카드 |
+| 거래 → 감시 | 비상 확인 | Header 감시 띠 클릭 |
+| 거래 → 거래 지원 | 참조 | 카드의 🔍 아이콘 (사이드 노트) 또는 Sidebar |
+| 거래 지원 → 거래 | 전략 적용 | 전략 활성화 후 자동 제안 toast |
+| 설계 → 거래/거래 지원 | 배포 | Code Generator 완료 후 자동 제안 toast |
+| → 설계 | 수동만 | Sidebar 통해 수동 이동. 자동 트리거 없음. |
 
 ---
 
-## 6. 화면 내부 레이아웃 (방향 C) — Operating 중심
+## 8. P1 Trading 4탭 (v1에서 유지)
 
-> Phase 1 범위에서 실제 구현하는 UI는 CLI이지만, 향후 Phase 2에서 화면을 붙일 때 설계를 재작업하지 않도록 레이아웃을 미리 확정한다.
-> 이 섹션은 **Phase 1과 직접 연관되는 Operating 카테고리 화면**만 다룬다.
-
-### 6.1 Op0 — Operating Overview
-
-시스템 진입 시 첫 화면. 전체 상태를 한 눈에 파악.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Operating Overview                                          │
-├───────────────────────────┬─────────────────────────────────┤
-│                           │                                 │
-│   Health Map              │   Today's P&L                   │
-│   ┌─────┐ ┌─────┐        │   ┌─────────────────────────┐   │
-│   │ P1  │ │ P4  │        │   │  +124,500 (+0.62%)      │   │
-│   │   │ │   │        │   │  ~~~~~~~~~~~~ (차트)     │   │
-│   └─────┘ └─────┘        │   └─────────────────────────┘   │
-│   ┌─────┐ ┌─────┐        │                                 │
-│   │ Mkt │ │ Sys │        │   Quick Stats                   │
-│   │   │ │   │        │   포지션: 2 종목                 │
-│   └─────┘ └─────┘        │   오늘 체결: 3건                 │
-│                           │   미체결: 0건                    │
-│   카드 클릭 → 해당 화면    │   FSM: IN_POSITION×2, IDLE×1   │
-│                           │                                 │
-├───────────────────────────┴─────────────────────────────────┤
-│                                                             │
-│   Positions Table                                           │
-│   ┌─────────┬──────┬────────┬──────────┬────────┬────────┐  │
-│   │ 종목    │ 수량  │ 평균가  │ 현재가    │ 손익   │ FSM   │  │
-│   ├─────────┼──────┼────────┼──────────┼────────┼────────┤  │
-│   │ 005930  │  10  │ 72,100 │ 72,350   │ +2,500│ IN_POS │  │
-│   │ 000660  │   5  │ 185,000│ 184,200  │ -4,000│ IN_POS │  │
-│   └─────────┴──────┴────────┴──────────┴────────┴────────┘  │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│   Recent Events (audit_events 최신 10건)                     │
-│   09:15:32 [info]  order_filled 005930 BUY 10@72,100        │
-│   09:15:30 [info]  risk_check_passed 005930                 │
-│   09:15:28 [info]  signal_generated 005930 BUY              │
-│   ...                                                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**영역 구조 (4영역)**:
-
-| 영역 | 위치 | 크기 비율 | 데이터 소스 | 갱신 주기 |
-|------|------|----------|-----------|----------|
-| Health Map | 좌상 | 30% × 50% | 각 Path 노드 상태 | 30초 폴링 |
-| P&L + Quick Stats | 우상 | 70% × 50% | daily_pnl + positions | 틱마다 (시세 연동) |
-| Positions Table | 중앙 | 100% × 25% | positions + market_ohlcv | 틱마다 |
-| Recent Events | 하단 | 100% × 25% | audit_events | 실시간 (append) |
-
-**상호작용**:
-- Health Map 카드 클릭 → 해당 Operating 화면으로 이동 (Click-Navigate)
-- Positions 행 클릭 → Op1 Trading Monitor 탭으로 이동 (?symbol=XXX)
-- Events 행 클릭 → correlation_id 기반 체인 추적 팝업
+| 탭 | 역할 | 주요 영역 |
+|----|------|----------|
+| Monitor | 실시간 관찰 | 좌: FSM 상태 + 포지션. 우: 시세/지표 서브탭 |
+| Control | 개입/조치 | 상: 조치 버튼(일시정지/재개/긴급청산). 하: 조치 이력. ApprovalGate 읽기 전용 |
+| Policy | 정책 설정 | 전략 목록 + 리스크 한도 + 종목 필터. 3 게이트 Save |
+| Test | 테스트 실행 | MockBroker 기반 시뮬레이션. 세션 단위, 영구 저장 없음 |
 
 ---
 
-### 6.2 Op1 — P1 Trading
+## 9. Strategy 통합 서브탭 (신규)
 
-Phase 1의 핵심 운영 화면. 6노드(MDR/IC/SE/RG/OE/FSM)의 실시간 상태와 제어.
+| 서브탭 | 역할 |
+|--------|------|
+| Edit | 전략 코드 작성/편집. `strategies/*.py` 관리 |
+| Backtest | 백테스트 실행 + 결과 차트 + 성과 지표 (Sharpe, MDD 등) |
+| Optimize | 파라미터 최적화 + 워크포워드 분석 |
+| History | 전략 버전 이력 + 비교 |
 
-#### Monitor 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ P1 Trading > Monitor                                        │
-├────────────────────────┬────────────────────────────────────┤
-│                        │                                    │
-│   FSM State Map        │   Live Chart                       │
-│   ┌────────────────┐   │   ┌────────────────────────────┐   │
-│   │ 005930: IN_POS │   │   │  005930 — 1분봉 + MA5/20  │   │
-│   │ 000660: IN_POS │   │   │  ~~~~~~~~~~~~~~~~~~~~~~~~  │   │
-│   │ 035720: IDLE   │   │   │  (candlestick + overlay)   │   │
-│   └────────────────┘   │   └────────────────────────────┘   │
-│                        │                                    │
-│   Node Pipeline        │   종목 선택 시 차트 전환             │
-│   MDR → IC → SE →      │                                    │
-│   RG → OE → FSM        │                                    │
-│   (각 노드 상태 점)      │                                    │
-│                        │                                    │
-├────────────────────────┴────────────────────────────────────┤
-│                                                             │
-│   Order Log (최신 주문 + 체결 실시간)                          │
-│   ┌──────┬──────┬────┬──────┬──────┬────────┬────────────┐  │
-│   │ 시각  │ 종목 │ 방향│ 수량  │ 가격 │ 상태   │ 사유       │  │
-│   ├──────┼──────┼────┼──────┼──────┼────────┼────────────┤  │
-│   │09:15 │005930│ BUY│  10  │72,100│ FILLED │ma5>ma20    │  │
-│   │09:10 │035720│ BUY│   5  │45,000│REJECTED│cash_limit  │  │
-│   └──────┴──────┴────┴──────┴──────┴────────┴────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**영역 구조 (4영역)**:
-
-| 영역 | 위치 | 데이터 소스 | Phase 1 구현 |
-|------|------|-----------|-------------|
-| FSM State Map | 좌상 | positions.fsm_state | `atlas status` 대응 |
-| Live Chart | 우상 | market_ohlcv + IndicatorCalculator | Phase 2 (Grafana) |
-| Node Pipeline | 좌하 | 각 노드 heartbeat | Phase 2 |
-| Order Log | 하단 | order_tracker + trades | `atlas orders` 대응 |
-
-#### Control 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ P1 Trading > Control                                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   System Control          Manual Order (Phase 2 MANUAL)     │
-│   ┌────────────────┐      ┌─────────────────────────────┐   │
-│   │ [⏸ Halt]       │      │ 종목: [005930    ▼]         │   │
-│   │ [▶ Resume]     │      │ 방향: [매수 ◉] [매도 ○]     │   │
-│   │ [ Stop]      │      │ 수량: [10      ]            │   │
-│   └────────────────┘      │ 가격: [72,100  ] 시장가 □    │   │
-│                            │ [주문 실행]                  │   │
-│   Mode: AUTO ◉             └─────────────────────────────┘   │
-│         MANUAL ○                                            │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│   Position Actions                                          │
-│   005930 [손절 청산] [전량 청산]                               │
-│   000660 [손절 청산] [전량 청산]                               │
-│                                                             │
-│   Master: [전 포지션 청산] ← Double Confirm                  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Phase 1 대응**: `atlas halt`, `atlas resume`, `atlas stop` CLI 명령이 이 탭의 System Control 영역에 해당.
-
-#### Policy 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ P1 Trading > Policy                                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Watchlist (종목 목록)      Risk Parameters                 │
-│   ┌────────────────┐        ┌──────────────────────────┐    │
-│   │ ☑ 005930 삼성  │        │ max_cash_usage:    95%   │    │
-│   │ ☑ 000660 하이닉│        │ max_position_pct:  20%   │    │
-│   │ ☑ 035720 카카오│        │ max_daily_loss:    -2%   │    │
-│   │ [+ 추가]       │        │ max_daily_trades:  40    │    │
-│   └────────────────┘        │ trading_hours: 09:00~15:20│   │
-│                              │ circuit_breaker: 3/60s   │    │
-│   Active Strategy            └──────────────────────────┘    │
-│   ┌────────────────┐                                        │
-│   │ ma_crossover   │        [Save] ← Validator 통과 후 활성  │
-│   │ v1.0           │        [Reset to Default]              │
-│   │ SMA(5,20)      │                                        │
-│   └────────────────┘                                        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Phase 1 대응**: `config/watchlist.yaml` + `config/config.yaml` 수동 편집이 이 탭에 해당.
-
-#### Test 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ P1 Trading > Test                                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Backtest Runner                                           │
-│   ┌─────────────────────────────────────────────────────┐   │
-│   │ Strategy: [ma_crossover.py ▼]                       │   │
-│   │ Period:   [2024-01-01] ~ [2025-12-31]               │   │
-│   │ Symbols:  [005930, 000660]                          │   │
-│   │ Capital:  [100,000,000 KRW]                         │   │
-│   │                                                     │   │
-│   │ [▶ Run Backtest]                                    │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│   Results                                                   │
-│   ┌─────────────────────────────────────────────────────┐   │
-│   │ Sharpe: 1.24 ✓   Return: +18.4%   MDD: -8.7%      │   │
-│   │ Trades: 47        Win Rate: 58.5%                   │   │
-│   │                                                     │   │
-│   │ Equity Curve: ~~~~~~~~~~~~~~~~~~~~~~~~~~~           │   │
-│   │ (차트)                                               │   │
-│   └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Phase 1 대응**: `atlas backtest strategies/ma_crossover.py --period ...` CLI 명령이 이 탭에 해당.
+워크플로: Edit → Backtest → (수정) → Backtest → Optimize → History에 저장
 
 ---
 
-### 6.3 Op4 — P4 Portfolio (Phase 2)
-
-> Phase 1에서는 RiskGuard 내장 간이 체크로 대체. 화면 레이아웃만 확정.
-
-#### Monitor 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ P4 Portfolio > Monitor                                      │
-├─────────────────────────┬───────────────────────────────────┤
-│                         │                                   │
-│   Equity Curve          │   Allocation Pie                  │
-│   (누적 자산 곡선)       │   (전략별/종목별 비중)              │
-│                         │                                   │
-├─────────────────────────┴───────────────────────────────────┤
-│                                                             │
-│   Performance Table                                         │
-│   전략별: 수익률, 샤프, MDD, 승률                              │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│   Risk Exposure                                             │
-│   종목 집중도(HHI), 섹터 비중, 일일 손실 현황                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 6.4 Op4 — Market Data (Phase 1 부분)
-
-#### Monitor 탭
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Market Data > Monitor                                       │
-├─────────────────────────┬───────────────────────────────────┤
-│                         │                                   │
-│   Connection Status     │   Collection Stats                │
-│   WS:  CONNECTED     │   오늘 수집: 1,250 봉              │
-│   REST:  OK           │   마지막 수집: 09:15:00            │
-│   Symbols: 3/3 active  │   다음 수집: 09:16:00              │
-│                         │                                   │
-├─────────────────────────┴───────────────────────────────────┤
-│                                                             │
-│   OHLCV Table (최근 수집 데이터 미리보기)                      │
-│   symbol | ts       | open   | high   | low    | close     │
-│   005930 | 09:15:00 | 72,100 | 72,350 | 72,050 | 72,300    │
-│   ...                                                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Phase 1 대응**: `atlas status`의 시세 연결 상태 부분에 해당.
-
----
-
-### 6.5 Phase 1 화면 ↔ CLI 매핑 요약
-
-| 화면 영역 | CLI 명령 | Phase |
-|----------|---------|-------|
-| Op0 전체 | `atlas status` | 1 |
-| Op0 Positions | `atlas positions` | 1 |
-| Op0 P&L | `atlas pnl` | 1 |
-| Op0 Events | `atlas audit` | 1 |
-| Op1 Control > Halt/Resume | `atlas halt` / `atlas resume` | 1 |
-| Op1 Control > Stop | `atlas stop` | 1 |
-| Op1 Test > Backtest | `atlas backtest <file>` | 1 |
-| Op1 Policy > Config | `atlas config show` | 1 |
-| Op1 Monitor > Orders | `atlas orders` | 1 |
-| Op4 Market Data | `atlas status` (시세 부분) | 1 |
-
----
-
-## 7. 변경 이력
+## 10. 변경 이력
 
 | 일자 | 버전 | 변경 | 근거 |
 |------|------|------|------|
-| 2026-04-16 | v1.0 | 초안 — 4 카테고리, 17 화면 목록 | 방향 D 완료 |
+| 2026-04-16 | v1.0 | 초안 (4 카테고리, 17 화면) | 대화 세션 결과를 .md로 고정 |
 | 2026-04-16 | v1.1 | 외곽 프레임 추가 | 방향 A 완료 |
 | 2026-04-16 | v1.2 | 화면 전환 흐름 추가 | 방향 B 완료 |
-| 2026-04-17 | v1.3 | Operating 화면 내부 레이아웃 + CLI 매핑 | 방향 C 완료 (Phase 1 범위) |
+| 2026-04-16 | v1.3 | P1 Trading 4탭 추가 | 방향 C Phase 1 완료 |
+| 2026-04-16 | v1.4 | Phase 2 5화면 추가 | 방향 C Phase 2 완료 |
+| 2026-04-17 | **v2.0** | **3 카테고리 + 횡단 감시로 전면 재편** | 5 Paths와 Categories 축 불일치 해소. P1+P4 한 쌍. 감시 횡단. Strategy+Backtest 통합. Operator 서브노드 배치 확정. 14 화면. |
 
 ---
 
-## 8. 다음 단계
+## 11. 다음 단계
 
-- [x] 방향 D — 구조 .md로 고정
-- [x] 방향 A — 공통 외곽 프레임 설계
-- [x] 방향 B — 화면 간 전환 흐름
-- [x] 방향 C — Operating 화면 내부 레이아웃 (Phase 1 범위)
-- [ ] 방향 C 확장 — Watchdog, Design, Ontology 화면 레이아웃 (Phase 2 진입 시)
-
----
-
-*End of Document — Screen Architecture v1.3*
+- [x] v1 방향 D — 구조 .md로 고정
+- [x] v1 방향 A — 공통 외곽 프레임 설계
+- [x] v1 방향 B — 화면 간 전환 흐름
+- [x] v1 방향 C Phase 1~2 — P1 Trading + 5 화면 큰 테두리
+- [x] **v2 — 카테고리 재편 (3 + 횡단)**
+- [ ] v2 방향 C — 나머지 화면 큰 테두리 (Overview, P4 Portfolio, Strategy 통합, Knowledge, 감시 4화면)
+- [ ] v2 방향 C — 설계 카테고리 4화면 상세
+- [ ] Phase 매핑 — 각 화면의 구현 Phase 명시

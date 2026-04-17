@@ -41,7 +41,7 @@
 | [`docs/architecture/cli-design.md`](docs/architecture/cli-design.md) | `atlas` CLI 설계 (Telegram 대체) |
 | [`docs/architecture/fsm-design.md`](docs/architecture/fsm-design.md) | TradingFSM 6상태 |
 | [`docs/architecture/db-stack.md`](docs/architecture/db-stack.md) | DB 스택 선정 근거 |
-| [`docs/architecture/screens/screen-architecture.md`](docs/architecture/screens/screen-architecture.md) | **화면 설계** (4카테고리, 17화면, 외곽·전환·레이아웃) |
+| [`docs/architecture/screens/screen-architecture.md`](docs/architecture/screens/screen-architecture.md) | **화면 설계 v2** (3카테고리 + 횡단감시, 14화면) |
 | [`docs/architecture/boot-shutdown-phase1.md`](docs/architecture/boot-shutdown-phase1.md) | **Boot/Shutdown 시퀀스** (기동·종료·긴급정지·크래시복구) |
 
 ---
@@ -161,6 +161,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-17 | **2차 교차 검증** — adapters.md 메서드 커버리지 6건 보완 (v1.0→v1.1). 검증 보고서 v1.1 업데이트. |
 | 2026-04-17 | **3차 교차 검증** — 71항목 자동 검증 스크립트 실행. CSVReplayAdapter unsubscribe 1건 보완 (v1.1→v1.2). |
 | 2026-04-17 | **4차 교차 검증** — 211항목 자동 검증. config.md backtest 섹션 추가 (v1.0→v1.1), struct.md OrderType 추가 (v1.0→v1.1). 실질 불일치 0건. |
+| 2026-04-17 | **화면 구조 v2 전면 재편** — 4카테고리 17화면 → 3카테고리+횡단감시 14화면. P1+P4 거래 쌍, Strategy+Backtest 통합, 감시 횡단 레이어. |
 
 ---
 
@@ -168,7 +169,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 
 | 순서 | 작업 | 상태 |
 |------|------|------|
-| 1 | 방향 C — Operating 화면 레이아웃 | ✅ 완료 |
+| 1 | 방향 C — Operating 화면 레이아웃 | ✅ 완료 (v2에서 거래 카테고리로 재편) |
 | 2 | config.yaml 통합 스키마 | ✅ 완료 |
 | 3 | Port ABC 시그니처 통합 (6개 Port Phase 1) | ✅ 완료 |
 | 4 | Adapter 구현 명세 (Mock/CSV/KIS) | ✅ 완료 |
