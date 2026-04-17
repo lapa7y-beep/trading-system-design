@@ -3,7 +3,7 @@
 # ============================================================================
 # Version: 1.0
 # Created: 2026-04-16
-# Scope: docs/decisions/011-phase1-scope.md
+# Scope: docs/what/decisions/011-phase1-scope.md
 #
 # 이 파일은 Phase 1의 Single Source of Truth 다.
 # - Node / Edge / Port / Adapter 정의를 단일 문서에 집약
@@ -20,7 +20,7 @@ updated: "2026-04-17"
 # 메타
 # ---------------------------------------------------------------------------
 meta:
-  scope_document: "docs/decisions/011-phase1-scope.md"
+  scope_document: "docs/what/decisions/011-phase1-scope.md"
   paths_active: ["path1"]
   paths_deferred: ["path2", "path3", "path4", "path5", "path6"]
   complexity_profile: "minimum_viable"
@@ -271,7 +271,7 @@ edges:
   - { id: e14, from: cli_halt,            to: TradingFSM,           type: Event,          role: Command,     name: halt_signal }
 
 # ---------------------------------------------------------------------------
-# Domain Types — 20개 (전체 정의는 docs/specs/domain-types-phase1.md 참조)
+# Domain Types — 20개 (전체 정의는 docs/what/specs/domain-types-phase1.md 참조)
 # ---------------------------------------------------------------------------
 domain_types:
   primitives: [Symbol, Price, Quantity, Money, CorrelationId]
