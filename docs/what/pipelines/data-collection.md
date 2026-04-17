@@ -99,4 +99,4 @@ fetch() → parse() → 청킹 → 임베딩 모델 → pgvector 저장
 - 감성·수치 상관: 뉴스 감성 점수 ↔ RSI·수급 상관계수
 - 시나리오 사전 검증: LLM 생성 시나리오 전제조건을 과거 데이터로 검증
 
-→ 상세: `docs/decisions/009-cross-validation.md`
+→ 상세: `docs/archive/phase3/009-cross-validation.md`
