@@ -64,6 +64,7 @@
 | [`docs/specs/config-schema-phase1.md`](docs/specs/config-schema-phase1.md) | **config.yaml 통합 스키마** (11섹션, 브로커 전환 명세) |
 | [`docs/specs/port-signatures-phase1.md`](docs/specs/port-signatures-phase1.md) | **6 Port ABC 통합 시그니처** (28 메서드, PortError 계층) |
 | [`docs/specs/adapter-spec-phase1.md`](docs/specs/adapter-spec-phase1.md) | **12 Adapter 구현 명세** (내부동작·실패처리·전환규칙) |
+| [`docs/specs/error-handling-phase1.md`](docs/specs/error-handling-phase1.md) | **에러 핸들링 통합 매트릭스** (4계층·Severity·SAFE_MODE·CB·KIS코드) |
 
 ---
 
@@ -150,6 +151,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-16 | Phase 1 확정 + 통폐합. 활성 문서 40여 개 → 16개. Phase 2+ 문서 Archive 이동. |
 | 2026-04-17 | screen-architecture.md v1.3 추가 (방향 A~C 완료). INDEX.md에 화면 설계 등재. |
 | 2026-04-17 | 설계작업 2/3/4/5 완료 — config-schema, port-signatures, adapter-spec, boot-shutdown 4개 문서 추가. INDEX 섹션 2/4 갱신. |
+| 2026-04-17 | 설계작업 6 완료 — error-handling-phase1 추가. 에러 처리 규칙 노드·Port·CB·SAFE_MODE·KIS코드 통합. |
 
 ---
 
@@ -162,8 +164,8 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 3 | Port ABC 시그니처 통합 (6개 Port Phase 1) | ✅ 완료 |
 | 4 | Adapter 구현 명세 (Mock/CSV/KIS) | ✅ 완료 |
 | 5 | Boot/Shutdown 시퀀스 Phase 1 축약판 | ✅ 완료 |
-| 6 | 에러 핸들링 통합 매트릭스 | ⏳ 다음 |
-| 7 | 프로젝트 폴더 구조 | ❌ |
+| 6 | 에러 핸들링 통합 매트릭스 | ✅ 완료 |
+| 7 | 프로젝트 폴더 구조 | ⏳ 다음 |
 | 8 | 테스트 전략 | ❌ |
 
 **방침**: 설계 작업 1~8 전부 완료 후 전체 점검 → 구현 설계 진입. 코드 설계는 가장 나중.
