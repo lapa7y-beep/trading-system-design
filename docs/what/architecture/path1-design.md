@@ -140,7 +140,7 @@ class RiskDecision(BaseModel):
 | runMode | `stateful-service` |
 | 입력 Edge | `approved_signal` ← RiskGuard |
 | 출력 Edge | `execution_event` → TradingFSM, AuditLogger |
-| Port | BrokerPort (주문/취소/조회) |
+| Port | OrderPort (주문 제출/취소/조회) |
 | OrderTracker | 메모리 dict + `order_tracker` 테이블 이중화 |
 | 체결 통보 | KIS `H0STCNI0` WebSocket 구독 |
 
@@ -190,14 +190,16 @@ MarketDataPort ──[quote_stream]──> IndicatorCalculator
 IndicatorCalculator ──[indicator_bundle]──> StrategyEngine
 PortfolioStore ──[position_snapshot]──> StrategyEngine (ConfigRef)
 StrategyEngine ──[signal_output]──> RiskGuard
+AccountPort ──[balance, positions]──> RiskGuard (잔고/포지션 조회)
 RiskGuard ──[approved_signal]──> OrderExecutor
 RiskGuard ──[rejection_event]──> AuditLogger (AuditTrace)
-OrderExecutor ──[order_request]──> BrokerPort
-BrokerPort ──[order_result]──> OrderExecutor
+OrderExecutor ──[order_request]──> OrderPort
+OrderPort ──[order_result]──> OrderExecutor
 OrderExecutor ──[execution_event]──> TradingFSM
 OrderExecutor ──[execution_event]──> AuditLogger (AuditTrace)
 TradingFSM ──[state_transition]──> PortfolioStore
 TradingFSM ──[state_transition]──> AuditLogger (AuditTrace)
+AccountPort ──[reconcile]──> TradingFSM (crash recovery 시)
 ```
 
 **Cross-Path 엣지 없음**. Shared Store는 PortfolioStore 1개만.
@@ -266,7 +268,7 @@ Phase 1 합격 기준 5개를 Path 1이 실제로 충족하는 시나리오:
 ### 기준 1: 샤프 > 1.0
 - `strategies/ma_crossover.py` 로드
 - `CSVReplayAdapter`로 2024-01-01 ~ 2025-12-31 OHLCV 주입
-- `MockBrokerAdapter`로 체결 시뮬레이션
+- `MockOrderAdapter` + `MockAccountAdapter`로 체결+계좌 시뮬레이션
 - 일별 return 계산 → 샤프 비율 산출
 
 ### 기준 2: 5거래일 무사고

@@ -223,6 +223,10 @@ class TradeRecord(BaseModel):
 
 ### 3.6 Portfolio
 
+> **Port 영역**: 이 섹션의 타입들(`Position`, `PortfolioSnapshot`)은 **AccountPort**가 반환하는 타입.
+> AccountPort.get_positions() → list[Position], AccountPort 내부 상태가 PortfolioSnapshot 형태.
+> OrderPort는 이 타입들을 직접 다루지 않는다 (단일 책임 원칙).
+
 ```python
 # core/domain/portfolio.py
 from datetime import datetime
@@ -231,6 +235,11 @@ from .primitives import Symbol, Price, Quantity, Money
 from .enums import FSMState
 
 class Position(BaseModel):
+    """AccountPort.get_positions() / get_position() 의 반환 타입.
+
+    StoragePort.load_position() 도 동일 타입을 반환 (내부 DB 저장본).
+    AccountPort.reconcile() 가 두 출처 간 일관성 검증.
+    """
     model_config = ConfigDict(frozen=True)
 
     symbol: Symbol
@@ -249,10 +258,15 @@ class Position(BaseModel):
 
 
 class PortfolioSnapshot(BaseModel):
+    """포트폴리오 전체 상태 스냅샷.
+
+    PortfolioStore가 보관, RiskGuard / StrategyEngine이 ConfigRef로 참조.
+    cash 필드는 AccountPort.get_balance() 결과와 일치해야 함 (reconcile 대상).
+    """
     model_config = ConfigDict(frozen=True)
 
     ts: datetime
-    cash: Money                          # 가용 현금
+    cash: Money                          # 가용 현금 (AccountPort.get_balance와 일치 필수)
     total_equity: Money                  # 총 자본 (cash + sum(positions.market_value))
     positions: dict[Symbol, Position]
     daily_pnl: Money = Money(0)

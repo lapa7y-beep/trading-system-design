@@ -2,7 +2,7 @@
 
 ## 1. 목적
 
-6 Port ABC 정의 + FakeAdapter + Orchestrator DI 구조 전환. ★ Phase 1 가장 중요한 구조 경계점. 이후 Port 시그니처 불변.
+7 Port ABC 정의 + FakeAdapter + Orchestrator DI 구조 전환. ★ Phase 1 가장 중요한 구조 경계점. 이후 Port 시그니처 불변.
 
 ## 2. 합격 기준 매핑
 
@@ -17,7 +17,7 @@
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/what/specs/port-signatures-phase1.md` — 전체 정독 (§1~6) — 6 Port 모든 메서드 시그니처 (30분)
+1. `docs/what/specs/port-signatures-phase1.md` — 전체 정독 (§1~6) — 7 Port 모든 메서드 시그니처 (30분)
 2. `docs/what/specs/adapter-spec-phase1.md` — §1 설계 원칙, §2 전체 목록 — 12 Adapter 이름과 매핑 (15분)
 3. `docs/what/specs/config-schema-phase1.md` — §1~2 파일 구조, 전체 스키마 — Enabling Point YAML 키 (15분)
 4. `docs/how/seam-classification.md` — §4 매트릭스, §5 체크리스트 — Port 난이도와 사전 조건 (10분)

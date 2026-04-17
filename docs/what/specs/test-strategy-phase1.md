@@ -107,10 +107,16 @@
 
 | Adapter | 테스트 |
 |---------|-------|
-| `MockBrokerAdapter` | 슬리피지 계산 정확도, 수수료+세금 적용, 잔고 부족 거부, 멱등성 |
+| `MockOrderAdapter` | 슬리피지 계산 정확도, 수수료+세금 적용, 잔고 부족 거부, 멱등성, MockAccount와 상태 공유 |
+| `MockAccountAdapter` | get_balance/get_positions 정확도, MockOrder 체결 후 잔고 반영 확인 |
+| `KISPaperOrderAdapter` | KIS 응답 mock으로 submit/cancel/status 검증 |
+| `KISPaperAccountAdapter` | inquire-balance 응답 파싱, **reconcile 일관성 검증** (내부 DB ↔ KIS) |
+| `SyntheticOrderAdapter` | ExchangeEngine 공유, 호가창 매칭 |
+| `SyntheticAccountAdapter` | ExchangeEngine cash/positions 조회 정확도 |
 | `InMemoryStorageAdapter` | upsert 동작, 트랜잭션 Lock 경합 |
 | `HistoricalClockAdapter` | advance_to 이후 now() 반영, sleep 즉시 반환 |
 | `CSVReplayAdapter` | CSV 로드, speed_multiplier=0 즉시, 1.0 실시간 |
+| `SyntheticMarketAdapter` | GBM 시세 생성, ExchangeEngine 시간 진행 |
 | `StdoutAuditAdapter` | JSON 라인 출력 형식 |
 
 ### 3.3 Mock 전략
@@ -176,7 +182,7 @@ def stub_strategy_loader():
 
 | # | 이름 | 시나리오 |
 |---|------|---------|
-| 1 | `path1_e2e_backtest` | CSVReplay + MockBroker + InMemory → 200봉 실행 → 체결 발생 → trades/positions/daily_pnl 기록 확인 |
+| 1 | `path1_e2e_backtest` | CSVReplay + MockOrder + MockAccount + InMemory → 200봉 실행 → 체결 발생 → trades/positions/daily_pnl 기록 확인 |
 | 2 | `path1_e2e_paper` | Fake KIS (respx) + Postgres → 10틱 처리 → 주문 제출 → 체결 이벤트 → FSM 전이 |
 | 3 | `crash_recovery` | 정상 운영 중 kill -9 → 재기동 → positions/order_tracker 복원 확인 |
 | 4 | `halt_timing` | 진행 중 주문 상태에서 halt 발송 → 30초 내 신규 주문 차단 확인 |

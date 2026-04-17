@@ -144,11 +144,11 @@ atlas backtest <file> # 백테스트 실행
 | 항목 | 수 | 비고 |
 |------|----|----|
 | Nodes | **6** | MarketDataReceiver, IndicatorCalculator, StrategyEngine, RiskGuard, OrderExecutor, TradingFSM |
-| Ports | **6** | MarketDataPort, BrokerPort, StoragePort, ClockPort, StrategyRuntimePort(파일 로드), AuditPort |
+| Ports | **7** | MarketDataPort, OrderPort, AccountPort, StoragePort, ClockPort, StrategyRuntimePort(파일 로드), AuditPort |
 | Shared Stores | **3** | MarketDataStore, PortfolioStore, AuditStore (ConfigStore는 YAML 파일로 대체) |
 | Edges | **약 12** | Path 1 내부만. Cross-Path 없음 |
 | Domain Types | **약 20** | Quote, OHLCV, OrderRequest, OrderResult, TradeRecord, Position, SignalOutput 등 |
-| Adapters (Primary) | **6** | KISWebSocketAdapter, KISRestAdapter, MockBrokerAdapter, PostgresStorageAdapter, KRXClockAdapter, PostgresAuditAdapter |
+| Adapters (Primary) | **11** | KISWebSocketAdapter, KISRestAdapter, MockOrderAdapter, MockAccountAdapter, KISPaperOrderAdapter, KISPaperAccountAdapter, SyntheticOrderAdapter, SyntheticAccountAdapter, PostgresStorageAdapter, WallClockAdapter, PostgresAuditAdapter |
 | Adapters (Mock) | **6** | 모든 Port에 대응하는 Mock |
 | Validation Rules | **약 10** | Phase 1에 해당하는 것만 |
 
@@ -171,7 +171,7 @@ atlas backtest <file> # 백테스트 실행
 - Port ABC 정의 (`core/ports/`)
 
 ### Step 2: Mock 파이프라인 (1~2주)
-- MockBrokerAdapter
+- MockOrderAdapter + MockAccountAdapter
 - HistoricalClockAdapter (과거 데이터 리플레이)
 - CSVHistoryAdapter (로컬 CSV 기반)
 - 전략 1개 (`ma_crossover.py`)

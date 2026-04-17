@@ -232,7 +232,7 @@ risk:
 on_approved_signal(signal):
   1. OrderRequest 생성 (order_uuid = UUID4)
   2. order_tracker 테이블 INSERT (status=submitted)
-  3. BrokerPort.submit(order_request)
+  3. OrderPort.submit(order_request)
   4. 응답 수신:
      - 성공 → broker_order_id 기록, status=accepted
      - 실패 → status=rejected, last_error 기록
@@ -344,9 +344,10 @@ boot_recovery():
   1. positions WHERE fsm_state NOT IN ('IDLE') 조회
   2. 각 포지션에 대해:
      a. order_tracker에서 미완료 주문 확인
-     b. BrokerPort.get_pending_orders() 대조
-     c. 불일치 → 경고 + 브로커 기준으로 상태 강제 갱신
-     d. 정상 → 기존 상태로 FSM 복원
+     b. OrderPort.get_order_status(uuid) 로 미체결 주문 상태 대조
+     c. AccountPort.reconcile() 로 내부 DB ↔ 브로커 잔고/포지션 일관성 검증
+     d. 불일치 → 경고 + 브로커 기준으로 상태 강제 갱신
+     e. 정상 → 기존 상태로 FSM 복원
   3. audit_events에 recovery 결과 기록
 ```
 
@@ -365,22 +366,28 @@ boot_recovery():
 ## 7. 노드 간 의존 관계 요약
 
 ```
-MarketDataReceiver
+MarketDataReceiver ←── MarketDataPort (DataFlow)
     ↓ quote_stream (DataFlow)
 IndicatorCalculator
     ↓ indicator_bundle (DataFlow)
 StrategyEngine ←── PortfolioStore (ConfigRef)
     ↓ signal_output (DataFlow)
 RiskGuard ←── PortfolioStore (ConfigRef)
+              AccountPort (잔고/포지션 조회)
     ↓ approved_signal (DataFlow)
     ↓ rejection_event → AuditStore (AuditTrace)
-OrderExecutor ──→ BrokerPort (DataFlow)
+OrderExecutor ──→ OrderPort (주문 제출/취소/조회)
     ↓ execution_event (Event)
     ↓ order_audit → AuditStore (AuditTrace)
 TradingFSM ←── cli_halt (Command)
+              AccountPort (crash recovery 시 reconcile)
     ↓ state_transition → PortfolioStore (DataPipe)
     ↓ fsm_audit → AuditStore (AuditTrace)
 ```
+
+> **Port 분리 원칙**: OrderExecutor는 주문 실행만 담당하므로 OrderPort만 사용.
+> RiskGuard와 TradingFSM은 계좌 정보가 필요하므로 AccountPort 사용.
+> 단일 책임 원칙으로 결합도 최소화.
 
 ---
 

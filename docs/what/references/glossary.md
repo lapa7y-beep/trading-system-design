@@ -18,6 +18,9 @@
 | **L0 / L1 / L2** | LLM 관여도. L0=없음, L1=보조, L2=핵심 |
 | **Plug & Play** | YAML 한 줄로 어댑터 교체. 노드 교체 시 Edge 계약만 유지하면 됨 |
 | **IngestPort** | 비정형 데이터 수집 플러그인 인터페이스. fetch/parse/get_metadata 3개 메서드 |
+| **OrderPort** | 주문 제출/취소/조회 추상화. submit/cancel/get_order_status. OrderExecutor가 사용. (BrokerPort 분리 결과) |
+| **AccountPort** | 계좌 조회·일관성 검증 추상화. get_balance/get_positions/get_position/reconcile. RiskGuard, TradingFSM이 사용. (BrokerPort 분리 결과) |
+| **ExchangeEngine** | 가상거래소 핵심 코어. PriceGen + OrderBook + MarketRules 통합. SyntheticMarket/Order/Account 3 Adapter가 공유 |
 | **MarketContext** | Path 6이 생성하는 종목별 시장 인텔리전스 종합 객체. entry_safe / exit_urgent 포함 |
 
 ---

@@ -4,6 +4,9 @@
 
 KIS Paper Trading 환경에서 5영업일 연속 실행. 합격기준 2~5번 동시 검증.
 
+> **사용 어댑터**: KISPaperOrderAdapter + KISPaperAccountAdapter (BrokerPort 분리 결과).
+> 두 어댑터는 동일한 KIS HTTP 세션·인증을 공유하지만, OrderPort/AccountPort 인터페이스로 분리되어 OrderExecutor와 RiskGuard/TradingFSM에 각각 주입.
+
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2,3,4,5

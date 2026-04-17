@@ -1,4 +1,4 @@
-# Phase 1 Port 인터페이스 시그니처 (6 Port·28 메서드)
+# Phase 1 Port 인터페이스 시그니처 (7 Port·31 메서드)
 
 > **목적**: Phase 1에서 사용하는 6개 Port의 Python ABC 시그니처, PortError 예외 계층, Adapter 매핑을 정의한다.
 > **층**: What
@@ -56,7 +56,7 @@ class StorageError(PortError):
 
 ---
 
-## 3. 6개 Port ABC
+## 3. 7개 Port ABC
 
 ### 3.1 MarketDataPort
 
@@ -135,23 +135,22 @@ class MarketDataPort(ABC):
 
 ---
 
-### 3.2 BrokerPort
+### 3.2 OrderPort
 
-> **역할**: 주문 제출/취소/조회 추상화
+> **역할**: 주문 제출/취소/조회 추상화 (주문 실행 전용)
 > **사용 노드**: OrderExecutor
-> **어댑터**: MockBrokerAdapter (mock), KISPaperBrokerAdapter (paper)
+> **어댑터**: MockOrderAdapter (mock), KISPaperOrderAdapter (paper), SyntheticOrderAdapter (synthetic)
 > **Phase 1 제약**: `kis_live` 어댑터는 연결 금지
 
 ```python
-# ports/broker_port.py
+# ports/order_port.py
 from abc import ABC, abstractmethod
 from uuid import UUID
 
 from domain.order import OrderRequest, OrderResult
-from domain.primitives import Money
 
 
-class BrokerPort(ABC):
+class OrderPort(ABC):
 
     @abstractmethod
     async def submit(self, order: OrderRequest) -> OrderResult:
@@ -187,15 +186,69 @@ class BrokerPort(ABC):
             DataError: 해당 UUID 주문 없음
             ConnectionError, TimeoutError
         """
+```
+
+---
+
+### 3.2b AccountPort
+
+> **역할**: 계좌 조회 및 일관성 검증 (계좌 정보 전용, 주문 실행과 분리)
+> **사용 노드**: RiskGuard (잔고/포지션 조회), TradingFSM (crash recovery 시 브로커 포지션 대조)
+> **어댑터**: MockAccountAdapter (mock), KISPaperAccountAdapter (paper), SyntheticAccountAdapter (synthetic)
+> **Phase 1 제약**: `kis_live` 어댑터는 연결 금지
+
+**왜 OrderPort와 분리했는가**: KIS API가 주문(`/trading/order-cash`)과 계좌(`/trading/inquire-balance`)를
+다른 엔드포인트로 분리해놓았다. ATLAS도 이 구조에 맞춰 단일 책임 원칙을 따른다.
+이로써 OrderExecutor는 OrderPort만, RiskGuard는 AccountPort만 의존하게 되어 결합도가 낮아진다.
+
+```python
+# ports/account_port.py
+from abc import ABC, abstractmethod
+
+from domain.portfolio import Position
+from domain.primitives import Money, Symbol
+
+
+class AccountPort(ABC):
 
     @abstractmethod
-    async def get_account_balance(self) -> Money:
+    async def get_balance(self) -> Money:
         """가용 현금 잔고 조회.
 
         Returns:
             Money: 주문 가능 KRW 잔고
         Raises:
             AuthError, ConnectionError, TimeoutError
+        """
+
+    @abstractmethod
+    async def get_positions(self) -> list[Position]:
+        """전체 보유 포지션 목록 조회.
+
+        Returns:
+            list[Position]: 현재 보유 종목별 수량·평단가
+        Raises:
+            AuthError, ConnectionError, TimeoutError
+        """
+
+    @abstractmethod
+    async def get_position(self, symbol: Symbol) -> Position | None:
+        """특정 종목 포지션 조회.
+
+        Returns:
+            Position | None: 보유 중이면 Position, 미보유 시 None
+        Raises:
+            AuthError, ConnectionError, TimeoutError
+        """
+
+    @abstractmethod
+    async def reconcile(self) -> dict:
+        """내부 DB(positions 테이블)와 브로커 계좌 간 일관성 검증.
+
+        TradingFSM crash recovery 시 호출. 불일치 발견 시 audit 기록.
+
+        Returns:
+            dict: {'consistent': bool, 'discrepancies': list[dict]}
         """
 ```
 
@@ -469,14 +522,15 @@ class AuditPort(ABC):
 
 | Port | mock 어댑터 | Phase 1 어댑터 | Phase 2+ |
 |------|------------|--------------|---------|
-| MarketDataPort | CSVReplayAdapter | KISWebSocketAdapter + KISRestAdapter | - |
-| BrokerPort | MockBrokerAdapter | KISPaperBrokerAdapter | KISLiveBrokerAdapter |
+| MarketDataPort | CSVReplayAdapter, SyntheticMarketAdapter | KISWebSocketAdapter + KISRestAdapter | - |
+| OrderPort | MockOrderAdapter, SyntheticOrderAdapter | KISPaperOrderAdapter | KISLiveOrderAdapter |
+| AccountPort | MockAccountAdapter, SyntheticAccountAdapter | KISPaperAccountAdapter | KISLiveAccountAdapter |
 | StoragePort | InMemoryStorageAdapter | PostgresStorageAdapter | - |
 | ClockPort | HistoricalClockAdapter | WallClockAdapter | - |
 | StrategyRuntimePort | - | FileSystemStrategyLoader | - |
 | AuditPort | StdoutAuditAdapter | PostgresAuditAdapter | - |
 
-**전환 방법**: `config.yaml`의 `broker.mode` 1줄 변경 → Adapter 팩토리가 자동 선택.
+**전환 방법**: `config.yaml`의 `order.mode` + `account.mode` (필요시 다른 증권사 조합 가능) 변경 → Adapter 팩토리가 자동 선택.
 
 ---
 
@@ -487,7 +541,8 @@ ports/
 ├── __init__.py
 ├── exceptions.py              ← PortError 계층 (섹션 2)
 ├── market_data_port.py        ← MarketDataPort ABC
-├── broker_port.py             ← BrokerPort ABC
+├── order_port.py              ← OrderPort ABC      (BrokerPort 분리 결과)
+├── account_port.py            ← AccountPort ABC    (BrokerPort 분리 결과)
 ├── storage_port.py            ← StoragePort ABC
 ├── clock_port.py              ← ClockPort ABC
 ├── strategy_runtime_port.py   ← StrategyRuntimePort ABC
@@ -497,18 +552,24 @@ adapters/
 ├── market_data/
 │   ├── kis_websocket.py       ← KISWebSocketAdapter
 │   ├── kis_rest.py            ← KISRestAdapter
-│   └── csv_replay.py         ← CSVReplayAdapter
-├── broker/
-│   ├── mock_broker.py         ← MockBrokerAdapter
-│   └── kis_paper_broker.py   ← KISPaperBrokerAdapter
+│   ├── csv_replay.py          ← CSVReplayAdapter
+│   └── synthetic_market.py    ← SyntheticMarketAdapter
+├── order/
+│   ├── mock_order.py          ← MockOrderAdapter
+│   ├── kis_paper_order.py     ← KISPaperOrderAdapter
+│   └── synthetic_order.py     ← SyntheticOrderAdapter
+├── account/
+│   ├── mock_account.py        ← MockAccountAdapter
+│   ├── kis_paper_account.py   ← KISPaperAccountAdapter
+│   └── synthetic_account.py   ← SyntheticAccountAdapter
 ├── storage/
-│   ├── postgres_storage.py   ← PostgresStorageAdapter
-│   └── in_memory_storage.py  ← InMemoryStorageAdapter
+│   ├── postgres_storage.py    ← PostgresStorageAdapter
+│   └── in_memory_storage.py   ← InMemoryStorageAdapter
 ├── clock/
 │   ├── wall_clock.py          ← WallClockAdapter
-│   └── historical_clock.py   ← HistoricalClockAdapter
+│   └── historical_clock.py    ← HistoricalClockAdapter
 ├── strategy/
-│   └── filesystem_loader.py  ← FileSystemStrategyLoader
+│   └── filesystem_loader.py   ← FileSystemStrategyLoader
 └── audit/
     ├── postgres_audit.py      ← PostgresAuditAdapter
     └── stdout_audit.py        ← StdoutAuditAdapter
@@ -521,7 +582,8 @@ adapters/
 | 날짜 | 버전 | 변경 |
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. 6개 Port ABC + PortError 계층 통합. |
+| 2026-04-17 | v1.1 | BrokerPort 분리 → OrderPort + AccountPort. 단일 책임 원칙 적용. KIS API 구조(주문 API와 계좌 API 분리)와 정합. 7개 Port·31 메서드. |
 
 ---
 
-*Phase 1 Port ABC 통합 시그니처 — 6 Ports | 27 메서드 | 1 예외 계층*
+*Phase 1 Port ABC 통합 시그니처 — 7 Ports | 31 메서드 | 1 예외 계층*

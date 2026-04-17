@@ -35,7 +35,7 @@
 | 10 | Edges 14개 | SSoT (cli_halt 포함) | ✅ |
 | 11 | Pre-Order 7체크 | SSoT = blueprint = config.md | ✅ |
 | 12 | 합격 기준 5개 | SSoT = test.md = boot.md = cli-design | ✅ |
-| 13 | config 키 (halt_timeout, broker.mode 등) | config.md = boot.md = error.md = adapter-spec-phase1.md | ✅ |
+| 13 | config 키 (halt_timeout, order.mode, account.mode 등) | config.md = boot.md = error.md = adapter-spec-phase1.md | ✅ |
 | 14 | Screens 14개 (감시4+거래3+거래지원3+설계4) | screen-arch.md v2 | ✅ (v2 재편) |
 | 15 | Severity 4단계 (info/warn/error/critical) | error.md 통합 기준 | ✅ |
 | 16 | 4 Safeguards | SSoT = boot.md §8 | ✅ |
@@ -149,7 +149,7 @@ curl -sL ".../graph_ir_phase1.yaml" | grep -E "^  [A-Z][a-zA-Z]+:$"
 curl -sL ".../docs/what/architecture/path1-node-blueprint.md" | grep "^## [0-9]\+\."
 
 # 4. Port 메서드 대조
-for port in MarketDataPort BrokerPort StoragePort ClockPort StrategyRuntimePort AuditPort; do
+for port in MarketDataPort OrderPort AccountPort StoragePort ClockPort StrategyRuntimePort AuditPort; do
   echo "=== $port ==="
   grep "methods" graph_ir.yaml  # SSoT
   sed -n "/^class $port(ABC):/,/^class /p" port-signatures-phase1.md \
@@ -173,7 +173,8 @@ done
 
 | Adapter | 추가된 메서드 설명 |
 |---------|----------------|
-| MockBrokerAdapter | `cancel`, `get_order_status`, `get_account_balance` |
+| MockOrderAdapter | `cancel`, `get_order_status` |
+| MockAccountAdapter | `get_balance`, `get_positions`, `get_position`, `reconcile` |
 | KISWebSocketAdapter | `unsubscribe`, `get_current_price`, `get_historical` (REST 위임 명시) |
 | KISRestAdapter | `unsubscribe`, `get_current_price` |
 | PostgresStorageAdapter | `load_ohlcv`, `load_position`, `load_all_positions` |

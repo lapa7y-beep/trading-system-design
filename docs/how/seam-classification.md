@@ -16,7 +16,7 @@ Python Protocol + 런타임 DI + YAML 설정. 타입 안전성은 mypy + pydanti
 
 | 하위 유형 | 특성 | 해당 Port |
 |---------|------|---------|
-| **Replaceable** | 환경별 Adapter 교체 일상적 | MarketDataPort, BrokerPort |
+| **Replaceable** | 환경별 Adapter 교체 일상적 | MarketDataPort, OrderPort, AccountPort |
 | **Stateful** | 내부 상태(연결, 세션) 보유 | StoragePort, MarketDataPort(WS) |
 | **Observational** | 주 흐름 무영향, 실패 허용 | AuditPort |
 | **Deterministic** | 비결정성(시간) 격리 | ClockPort |
@@ -30,12 +30,12 @@ Python Protocol + 런타임 DI + YAML 설정. 타입 안전성은 mypy + pydanti
 - 핵심 리스크: WebSocket 재연결 중 bar 누락
 - Stub 경로: inline stub (Step 0)(Step 0) → CSVReplayAdapter(Step 3) → KIS(Step 11b)
 
-### 3.2 BrokerPort — Replaceable + Stateful
+### 3.2 OrderPort — Replaceable + Stateful
 
-- Adapter 2개: MockBrokerAdapter / KISPaperBrokerAdapter
+- Adapter 3개: MockOrderAdapter / KISPaperOrderAdapter / SyntheticOrderAdapter (AccountPort 별도 §3.2b)
 - 교체 난이도: **높음** (Phase 1 최고 위험)
 - 핵심 리스크: intent_id 기반 중복주문방지, 부분체결, 취소 지연
-- Stub 경로: inline stub (Step 0)(Step 0) → MockBrokerAdapter(Step 7) → KISPaper(Step 11b)
+- Stub 경로: inline stub (Step 0) → MockOrderAdapter(Step 7) → KISPaperOrderAdapter(Step 11b)
 
 ### 3.3 StoragePort — Stateful
 
@@ -69,18 +69,19 @@ Python Protocol + 런타임 DI + YAML 설정. 타입 안전성은 mypy + pydanti
 | Port | 유형 | 난이도 | Adapter 수 | Port 변경 위험 |
 |------|------|-------|----------|-------------|
 | MarketDataPort | Replaceable+Stateful | 중 | 3 | 중 |
-| BrokerPort | Replaceable+Stateful | **높음** | 2 | **높음** |
+| OrderPort | Replaceable+Stateful | **높음** | 3 | **높음** |
+| AccountPort | Replaceable+Stateful | **높음** | 3 | **중간** |
 | StoragePort | Stateful | 중 | 2 | 중 |
 | ClockPort | Deterministic | 낮음 | 2 | 낮음 |
 | StrategyRuntimePort | Replaceable(약) | 낮음 | 1 | 중(Phase 2) |
 | AuditPort | Observational | 최저 | 2 | 최저 |
 
-**집중 대상**: BrokerPort. intent_id, 부분체결, 취소 응답 지연 등 엣지 케이스를 시그니처 수준에서 수용해야 함.
+**집중 대상**: OrderPort + AccountPort. OrderPort는 intent_id, 부분체결, 취소 응답 지연. AccountPort는 reconcile 일관성, 잔고 정확도.
 
 ## 5. Step 2 착수 전 체크리스트
 
 - [ ] 6 Port 메서드 시그니처가 `port-signatures-phase1.md`에 확정
-- [ ] BrokerPort의 Order에 intent_id 포함
+- [ ] OrderPort의 Order에 intent_id 포함
 - [ ] StoragePort 메서드가 트랜잭션 경계 미가정
 - [ ] ClockPort 외 datetime.now() 직접 호출 금지 명시
 - [ ] AuditPort.log_event() 실패 시 비전파 명시

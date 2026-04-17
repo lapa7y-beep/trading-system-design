@@ -88,11 +88,12 @@ StrategyRuntimePort (인터페이스) — 교체 가능한 추상화
 ## 6. 증권사 구조
 
 ```
-BrokerPort (추상화)
+OrderPort + AccountPort (추상화, BrokerPort 분리 결과)
   ├── KISMCPAdapter     — KIS 주문 실행 (운영 기본)
   ├── KISRestAdapter    — KIS REST 직접 (fallback)
   ├── KiwoomAdapter     — Kiwoom REST
-  └── MockBrokerAdapter — 백테스트·모의투자
+  ├── MockOrderAdapter / KISPaperOrderAdapter — 주문
+  └── MockAccountAdapter / KISPaperAccountAdapter — 계좌
 
 포지션 키 = (종목코드 + 증권사)
 settings.yaml broker: 한 줄로 전환

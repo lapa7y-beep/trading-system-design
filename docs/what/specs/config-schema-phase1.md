@@ -16,13 +16,18 @@ config/
 └── watchlist.yaml       ← 종목 목록 (별도 파일, 섹션 8 참조)
 ```
 
-Phase 1에서 **환경 전환의 핵심**은 `broker.mode` 단 한 줄이다.
+Phase 1에서 **환경 전환의 핵심**은 `order.mode` + `account.mode` 두 줄이다.
+(보통 같은 증권사로 통일하지만, Port가 분리되어 있어 혼합도 가능.)
 
 ```
-broker.mode: mock      → MockBroker (백테스트)
-broker.mode: paper     → KISPaperBrokerAdapter (모의투자)
-broker.mode: live      → Phase 2D까지 절대 사용 금지
+order.mode + account.mode: mock + mock           → MockOrder + MockAccount (백테스트)
+order.mode + account.mode: paper + paper         → KISPaper Order/Account (모의투자)
+order.mode + account.mode: synthetic + synthetic → Synthetic Order/Account (가상거래소)
+order.mode + account.mode: live + live           → Phase 2D까지 절대 사용 금지
 ```
+
+> **혼합 사용**: SyntheticOrder ↔ SyntheticAccount는 **반드시 쌍**으로 사용 (ExchangeEngine 공유 필수).
+> MockOrder ↔ MockAccount도 마찬가지 (in-process 상태 공유). KIS는 혼합 가능 (KISPaperOrder + KISPaperAccount, 또는 OrderPort만 KIS 사용 + AccountPort는 다른 증권사 등).
 
 ---
 
@@ -30,14 +35,31 @@ broker.mode: live      → Phase 2D까지 절대 사용 금지
 
 ```yaml
 # ==========================================================================
-# 1. 브로커 (BrokerPort 어댑터 선택)
+# 1. 주문 (OrderPort 어댑터 선택) — BrokerPort 분리 결과
+# ==========================================================================
+order:
+  mode: "mock"                    # 필수 | enum: mock | paper | synthetic | live
+                                  # mock      → MockOrderAdapter (백테스트)
+                                  # paper     → KISPaperOrderAdapter (모의투자)
+                                  # synthetic → SyntheticOrderAdapter (가상거래소)
+                                  # live      → 금지 (Phase 2D 이후)
+
+# ==========================================================================
+# 1b. 계좌 (AccountPort 어댑터 선택) — BrokerPort 분리 결과
+# ==========================================================================
+account:
+  mode: "mock"                    # 필수 | enum: mock | paper | synthetic | live
+                                  # mock      → MockAccountAdapter (MockOrder와 상태 공유)
+                                  # paper     → KISPaperAccountAdapter
+                                  # synthetic → SyntheticAccountAdapter (ExchangeEngine 공유)
+                                  # live      → 금지 (Phase 2D 이후)
+  reconcile_interval_seconds: 10  # int ≥ 1 | 내부 DB ↔ 브로커 잔고 일관성 검증 주기
+
+# ==========================================================================
+# 1c. 브로커 인증 정보 (KIS 공통, OrderPort+AccountPort가 공유)
 # ==========================================================================
 broker:
-  mode: "mock"                    # 필수 | enum: mock | paper | live
-                                  # mock   → MockBrokerAdapter (백테스트)
-                                  # paper  → KISPaperBrokerAdapter (모의투자)
-                                  # live   → 금지 (Phase 2D 이후)
-  kis:                            # mode=paper/live 일 때만 사용
+  kis:                            # order.mode 또는 account.mode가 paper/live 일 때만 사용
     app_key: ""                   # string | KIS API App Key
     app_secret: ""                # string | KIS API App Secret
     account_no: ""                # string | 계좌번호 (예: "50123456-01")
@@ -156,7 +178,7 @@ cli:
   status_refresh_seconds: 5       # int ≥ 1 | atlas status 폴링 주기
 
 # ==========================================================================
-# 12. 백테스트 (MockBrokerAdapter 전용)
+# 12. 백테스트 (MockOrderAdapter + MockAccountAdapter 전용)
 # ==========================================================================
 backtest:
   initial_cash: 100000000         # int | 초기 자금 (KRW, 기본 1억)
@@ -183,18 +205,23 @@ backtest:
 
 ## 3. 브로커 전환 — 변경 키 명세
 
-**MockBroker → KISPaperBroker 전환 시 변경 키 (총 5줄)**
+**Mock → KISPaper 전환 시 변경 키 (총 6줄)**
 
 ```yaml
 # BEFORE (백테스트)
-broker:
+order:
+  mode: "mock"
+account:
   mode: "mock"
 market_data:
   mode: "csv_replay"
 
 # AFTER (모의투자) — 변경 줄만 표시
-broker:
+order:
   mode: "paper"
+account:
+  mode: "paper"
+broker:
   kis:
     app_key: "PSxxxxxxxxxxxxxxxx"
     app_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -203,11 +230,28 @@ market_data:
   mode: "ws"
 ```
 
-**KISPaperBroker → 실전 전환 (Phase 2D에서만)**
+**가상거래소로 전환**
 
 ```yaml
+order:
+  mode: "synthetic"
+account:
+  mode: "synthetic"
+market_data:
+  mode: "synthetic"
+synthetic:
+  seed: 42
+  # ... synthetic 섹션 (§9 참조)
+```
+
+**Phase 2D 실전 전환** — 변경 줄만:
+
+```yaml
+order:
+  mode: "live"            # OrderPort만 live로
+account:
+  mode: "live"            # AccountPort만 live로
 broker:
-  mode: "live"            # 이 한 줄 + base_url 변경
   kis:
     base_url: "https://openapi.koreainvestment.com:9443"
 ```
@@ -231,8 +275,10 @@ symbols:
 
 | 키 | 검사 | 실패 시 동작 |
 |-----|------|------------|
-| `broker.mode` | enum 강제 | 기동 중단 |
-| `broker.mode == live` | Phase 1에서 금지 | 기동 중단 |
+| `order.mode` / `account.mode` | enum 강제 | 기동 중단 |
+| `order.mode == live` 또는 `account.mode == live` | Phase 1에서 금지 | 기동 중단 |
+| `order.mode == synthetic` ⇔ `account.mode == synthetic` | 쌍으로만 사용 | 기동 중단 |
+| `order.mode == mock` ⇔ `account.mode == mock` | 쌍으로만 사용 | 기동 중단 |
 | `risk.max_cash_usage_ratio` | 0 < x ≤ 1 | 기동 중단 |
 | `risk.max_daily_loss_pct` | x > 0 | 기동 중단 |
 | `indicators.buffer_size` ≥ `indicators.warmup_bars` | 필수 | 기동 중단 |
@@ -326,7 +372,7 @@ market_rules_file: "config/market_rules.yaml"  # str | 수수료·세금 외부 
 ## synthetic 섹션 (가상거래소 — synthetic-exchange-phase1.md 연동)
 
 > **출처**: `docs/what/specs/synthetic-exchange-phase1.md` §10
-> **사용 조건**: `broker.mode: synthetic` + `market_data.mode: synthetic` 쌍으로 사용
+> **사용 조건**: `order.mode: synthetic` + `account.mode: synthetic` + `market_data.mode: synthetic` 3개 모두 synthetic이어야 함
 
 ```yaml
 synthetic:

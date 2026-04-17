@@ -117,14 +117,24 @@ Layer 4: AuditPort       ← 모든 에러 발생 기록 (append-only)
 | `AuthError` | subscribe (최초) | 기동 중단 | Boot 시퀀스 |
 | `DataError` | get_historical (빈 응답) | 호출자 판단 (Risk/Strategy) | Node |
 
-### 4.2 BrokerPort
+### 4.2 OrderPort
 
 | PortError | 발생 지점 | 기본 대응 | 대응 주체 |
 |-----------|----------|---------|----------|
 | `BrokerRejectError` | submit, cancel | status=rejected, audit 기록 | OrderExecutor |
 | `TimeoutError` | submit | CB 카운터 증가, 상태 확인 필요 | OrderExecutor |
 | `ConnectionError` | 전체 | 3회 재시도 → FSM broker_error | OrderExecutor |
-| `AuthError` | get_account_balance | Boot 실패, SAFE_MODE | Boot 시퀀스 |
+| `BrokerRejectError(code='PRICE_LIMIT')` | submit | 호가단위/상하한가 위반 → reject | OrderExecutor |
+| `BrokerRejectError(code='VI_TRIGGERED')` | submit | VI 중 주문 → reject + 쿨다운 | OrderExecutor |
+
+### 4.2b AccountPort
+
+| PortError | 발생 지점 | 기본 대응 | 대응 주체 |
+|-----------|----------|---------|----------|
+| `AuthError` | get_balance (Boot) | Boot 실패, SAFE_MODE | Boot 시퀀스 |
+| `ConnectionError` | get_balance, get_positions | 3회 재시도 → FSM safemode | Boot/RiskGuard |
+| `TimeoutError` | reconcile | 재시도 1회, 실패 시 audit + 다음 주기 재시도 | TradingFSM |
+| reconcile 불일치 | reconcile | audit 기록 + 브로커 기준으로 강제 갱신 | TradingFSM |
 
 ### 4.3 StoragePort
 
@@ -195,7 +205,7 @@ FSM이 SAFE_MODE로 강제 전이되는 경우를 모두 모음.
 | 1 | `atlas halt` 명령 | Signal Handler | info (사용자 의도) |
 | 2 | Crash recovery 불일치 | Boot §4 | critical |
 | 3 | DB 연결 끊김 (지속적) | StoragePort | critical |
-| 4 | BrokerPort get_account_balance 실패 (Boot) | Boot §7 | critical |
+| 4 | AccountPort get_balance 실패 (Boot) | Boot §7 | critical |
 | 5 | MarketData 구독 완전 실패 (ws+poll 모두) | Boot §8 | critical |
 | 6 | Strategy 로드 실패 | Boot §6 | critical |
 | 7 | TradingFSM positions UPDATE 3회 실패 | FSM | critical |
@@ -213,10 +223,10 @@ FSM이 SAFE_MODE로 강제 전이되는 경우를 모두 모음.
 |------|------|---------|--------|------------|
 | KIS WS 재연결 | KISWebSocketAdapter | 3회 | `ws_reconnect_interval_seconds` (5s 기본) | FALLBACK_POLL |
 | KIS REST 호출 | KISRestAdapter | 3회 | 지수 (1s → 2s → 4s) | `ConnectionError` raise |
-| KIS 주문 제출 (타임아웃) | KISPaperBrokerAdapter | 1회 | 즉시 | CB 카운터++ |
-| 토큰 만료 재시도 | KISPaperBrokerAdapter | 1회 | 즉시 | `AuthError` |
-| Rate limit 대기 | KISPaperBrokerAdapter | 1회 | 1s | 재시도 |
-| 호가단위 보정 | KISPaperBrokerAdapter | 1회 | 즉시 | `BrokerRejectError` |
+| KIS 주문 제출 (타임아웃) | KISPaperOrderAdapter | 1회 | 즉시 | CB 카운터++ |
+| 토큰 만료 재시도 | KISPaperOrderAdapter / KISPaperAccountAdapter | 1회 | 즉시 | `AuthError` |
+| Rate limit 대기 | KISPaperOrderAdapter | 1회 | 1s | 재시도 |
+| 호가단위 보정 | KISPaperOrderAdapter | 1회 | 즉시 | `BrokerRejectError` |
 | DB update_position | PostgresStorageAdapter | 3회 | 지수 (0.5s → 1s → 2s) | ERROR 전이 → 전역 SAFE_MODE |
 | Audit 로깅 | PostgresAuditAdapter | 1회 | 즉시 | 파일 fallback |
 | Strategy evaluate | FileSystemStrategyLoader | 0 (재시도 없음) | — | 해당 틱 drop |

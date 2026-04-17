@@ -26,10 +26,11 @@
 | `atlas stop` | 정상 종료 (진행 중 주문 완료 대기) | medium |
 | `atlas halt` | **긴급 정지** — 30초 내 신규 주문 차단 | high |
 | `atlas resume` | SAFE_MODE 해제 | high |
-| `atlas status` | 현재 상태 요약 출력 | none |
-| `atlas positions` | 보유 포지션 테이블 | none |
-| `atlas pnl [--today / --week / --from=YYYY-MM-DD]` | 손익 조회 | none |
-| `atlas orders [--open / --today]` | 주문 내역 | none |
+| `atlas status` | 현재 상태 요약 출력 (StoragePort + AccountPort.get_balance) | none |
+| `atlas positions` | 보유 포지션 테이블 (AccountPort.get_positions) | none |
+| `atlas balance` | 현재 잔고 조회 (AccountPort.get_balance) | none |
+| `atlas pnl [--today / --week / --from=YYYY-MM-DD]` | 손익 조회 (StoragePort) | none |
+| `atlas orders [--open / --today]` | 주문 내역 (StoragePort + OrderPort.get_order_status) | none |
 | `atlas backtest <strategy.py> [--period=...]` | 백테스트 실행 | none |
 | `atlas audit [--tail=N]` | 감사 로그 조회 | none |
 | `atlas config [show / validate]` | 설정 확인 | none |

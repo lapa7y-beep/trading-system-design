@@ -46,7 +46,9 @@
      │   4.4 불일치 감지 시 AuditPort 기록 → SAFE_MODE 진입
      ▼
 [5] Adapter Factory로 나머지 포트 초기화
-     │   BrokerPort (config.broker.mode 기준 선택)
+     │   ExchangeEngine (synthetic 모드일 때만, 3 Adapter가 공유)
+     │   OrderPort (config.order.mode 기준 선택)
+     │   AccountPort (config.account.mode 기준 선택)
      │   MarketDataPort (config.market_data.mode 기준)
      │   ClockPort, StrategyRuntimePort, AuditPort
      ▼
@@ -55,8 +57,8 @@
      │   실패 시 SAFE_MODE 진입 (기동은 완료하되 매매 중단)
      ▼
 [7] 브로커 연결 확인
-     │   BrokerPort.get_account_balance() 호출
-     │   잔고 조회 성공 = 인증 OK
+     │   AccountPort.get_balance() 호출 → 잔고 조회 성공 = 인증 OK
+     │   AccountPort.reconcile() 호출 → 내부 DB ↔ 브로커 일관성 확인
      │   실패 시 SAFE_MODE 진입
      ▼
 [8] 시세 구독 시작
@@ -111,31 +113,46 @@
 
 ```python
 # 의사 코드
-async def crash_recovery(storage: StoragePort, broker: BrokerPort, audit: AuditPort):
+async def crash_recovery(
+    storage: StoragePort,
+    order: OrderPort,
+    account: AccountPort,
+    audit: AuditPort,
+):
     # 3.2.1 미청산 포지션 로드
     positions = await storage.load_all_positions()
 
     # 3.2.2 미완료 주문 조회 (status IN pending/submitted/partial)
     pending_orders = await storage.load_pending_orders()
 
-    # 3.2.3 브로커에 실제 상태 재확인
-    for order in pending_orders:
+    # 3.2.3 브로커에 실제 주문 상태 재확인 (OrderPort 사용)
+    for o in pending_orders:
         try:
-            real_result = await broker.get_order_status(order.order_uuid)
+            real_result = await order.get_order_status(o.order_uuid)
 
-            if real_result.status != order.status:
+            if real_result.status != o.status:
                 # 브로커 기준이 진실. DB 업데이트.
                 await storage.update_order_status(real_result)
                 await audit.log(
                     event_type='crash_recovery_mismatch',
                     severity='warning',
                     source='BootSequence',
-                    correlation_id=order.correlation_id,
-                    payload={'db_status': order.status, 'broker_status': real_result.status},
+                    correlation_id=o.correlation_id,
+                    payload={'db_status': o.status, 'broker_status': real_result.status},
                 )
         except DataError:
             # 브로커가 모르는 주문 = 제출 전 크래시
-            await storage.mark_order_as('failed_before_submit', order.order_uuid)
+            await storage.mark_order_as('failed_before_submit', o.order_uuid)
+
+    # 3.2.3b 계좌 일관성 검증 (AccountPort 사용)
+    reconcile_result = await account.reconcile()
+    if not reconcile_result['consistent']:
+        await audit.log(
+            event_type='crash_recovery_account_mismatch',
+            severity='critical',
+            source='BootSequence',
+            payload=reconcile_result,
+        )
 
     # 3.2.4 FSM 인스턴스 재구성
     fsms = {}

@@ -19,7 +19,7 @@
 | 종목 유니버스 미정 | watchlist "3~5개" 예시조차 없음 | 백테스트 재현 불가 |
 | Bar 주기 미명시 | tick(H0STCNT0)을 어떻게 봉으로? | IndicatorCalculator 동작 불명 |
 | 한국시장 규칙 공백 | 호가단위/VI/동시호가/상하한가 | 모의투자에서 주문 거부 연발 예상 |
-| MockBroker 체결 로직 미정의 | 수수료/세금/슬리피지 숫자 없음 | 백테스트 결과 신뢰 불가 |
+| MockOrder 체결 로직 미정의 | 수수료/세금/슬리피지 숫자 없음 | 백테스트 결과 신뢰 불가 |
 | Sharpe 계산 규칙 미정 | 연율화/RFR/NaN 처리 | 합격 기준 1번 조작 가능 |
 | "무사고" 정량 정의 미흡 | 경제적 성과 기준 없음 | 합격 기준 2번 조작 가능 |
 
@@ -425,7 +425,7 @@ def realized_pnl(entry_price, exit_price, qty, market) -> int:
     return proceeds - cost
 ```
 
-### 6.2 MockBroker 체결 로직
+### 6.2 MockOrder 체결 로직
 
 #### 6.2.1 기본 원칙
 
@@ -450,10 +450,10 @@ def mock_fill_price(next_bar_open: int, side: OrderSide) -> int:
 * KIS Paper: 실제 API 응답 시간 (~100~500 ms 관찰됨).
 * **TradingFSM의 `ENTRY_PENDING` 타임아웃은 5초** — Paper에서도 충분.
 
-#### 6.2.3 MockBroker 내부 상태
+#### 6.2.3 MockOrder 내부 상태
 
 ```python
-class MockBrokerState:
+class MockOrderState:
     cash: int                    # 초기: config.mock_initial_cash (기본 1억)
     positions: dict[Symbol, int] # {symbol: qty}
     order_history: list[OrderResult]
@@ -463,7 +463,7 @@ class MockBrokerState:
 
 ### 6.3 KIS Paper (모의투자) 체결 특성
 
-* 실제 시장가로 체결됨 (슬리피지는 실제 발생, MockBroker의 1틱 가정보다 불리할 수도 유리할 수도 있음).
+* 실제 시장가로 체결됨 (슬리피지는 실제 발생, MockOrder의 1틱 가정보다 불리할 수도 유리할 수도 있음).
 * 수수료·세금은 실제 KIS와 동일하게 부과 (모의투자에서도).
 * **단점**: 휴장일 이후 계좌 리셋 가능성 (KIS 정책). 5거래일 연속 테스트 시 중간에 리셋되면 합격기준 2 재검증 필요.
 
@@ -727,7 +727,7 @@ Step 2 구현 시:
 Step 4 RiskGuard 구현 시:
   §5.3 price_limit 체크 포함 여부 결정
   
-Step 5 MockBroker 구현 시:
+Step 5 MockOrder + MockAccount 구현 시:
   §6.2 체결 로직 정확히 구현
   
 Step 8 E2E 백테스트:

@@ -37,13 +37,21 @@ ports:
       mock: CSVReplayAdapter
       synthetic: SyntheticMarketAdapter  # synthetic-exchange-spec
 
-  BrokerPort:
-    methods: [submit, cancel, get_order_status, get_account_balance]
+  OrderPort:
+    methods: [submit, cancel, get_order_status]
     adapters:
-      mock: MockBrokerAdapter
-      synthetic: SyntheticBrokerAdapter  # synthetic-exchange-spec
-      kis_paper: KISPaperBrokerAdapter
-      kis_live: KISLiveBrokerAdapter    # Phase 2 진입까지 사용 금지
+      mock: MockOrderAdapter
+      synthetic: SyntheticOrderAdapter
+      kis_paper: KISPaperOrderAdapter
+      kis_live: KISLiveOrderAdapter      # Phase 2 진입까지 사용 금지
+
+  AccountPort:
+    methods: [get_balance, get_positions, get_position, reconcile]
+    adapters:
+      mock: MockAccountAdapter
+      synthetic: SyntheticAccountAdapter
+      kis_paper: KISPaperAccountAdapter
+      kis_live: KISLiveAccountAdapter    # Phase 2 진입까지 사용 금지
 
   StoragePort:
     methods: [save_ohlcv, load_ohlcv, save_trade, update_position, load_position, load_all_positions, save_pnl, load_portfolio_snapshot]
@@ -154,7 +162,7 @@ nodes:
     path: path1
     category: core
     runMode: event
-    ports_used: [StoragePort, ClockPort, AuditPort]
+    ports_used: [StoragePort, ClockPort, AuditPort, AccountPort]
     inputs:
       - edge: signal_output
         from: StrategyEngine
@@ -188,7 +196,7 @@ nodes:
     path: path1
     category: core
     runMode: stateful_service
-    ports_used: [BrokerPort, StoragePort, AuditPort]
+    ports_used: [OrderPort, StoragePort, AuditPort]
     inputs:
       - edge: approved_signal
         from: RiskGuard
@@ -214,7 +222,7 @@ nodes:
     path: path1
     category: core
     runMode: stateful_service
-    ports_used: [StoragePort, AuditPort]
+    ports_used: [StoragePort, AuditPort, AccountPort]
     inputs:
       - edge: execution_event
         from: OrderExecutor
@@ -255,7 +263,7 @@ edges:
   - { id: e06, from: PortfolioStore,      to: RiskGuard,            type: DataFlow,       role: ConfigRef,   name: portfolio_snapshot }
   - { id: e07, from: RiskGuard,           to: OrderExecutor,        type: DataFlow,       role: DataPipe,    name: approved_signal }
   - { id: e08, from: RiskGuard,           to: AuditStore,           type: Event,          role: AuditTrace,  name: rejection_event }
-  - { id: e09, from: OrderExecutor,       to: BrokerPort,           type: DataFlow,       role: DataPipe,    name: order_request }
+  - { id: e09, from: OrderExecutor,       to: OrderPort,            type: DataFlow,       role: DataPipe,    name: order_request }
   - { id: e10, from: OrderExecutor,       to: TradingFSM,           type: Event,          role: EventNotify, name: execution_event }
   - { id: e11, from: OrderExecutor,       to: AuditStore,           type: Event,          role: AuditTrace,  name: order_audit }
   - { id: e12, from: TradingFSM,          to: PortfolioStore,       type: StateTransition, role: DataPipe,   name: state_transition }
@@ -331,12 +339,12 @@ acceptance_criteria:
 # ---------------------------------------------------------------------------
 expected_counts:
   nodes: 6
-  ports: 6
+  ports: 7              # +1: BrokerPort 분리 → OrderPort + AccountPort
   shared_stores: 3
-  edges: 14            # cli_halt 포함
+  edges: 14            # cli_halt 포함 (Port 라벨만 갱신)
   domain_types: 20
   db_tables: 6
-  adapters_primary: 8  # +2: SyntheticMarketAdapter, SyntheticBrokerAdapter (synthetic-exchange-phase1)
+  adapters_primary: 11  # +3: Mock/KISPaper/Synthetic 각각 Order+Account로 분리
   pre_order_checks: 8
   fsm_states: 6
   fsm_transitions: 12

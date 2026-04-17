@@ -16,7 +16,7 @@
 | IndicatorCalculator | `core/nodes/indicator.py` | 기술적 지표 계산 | — | stub |
 | StrategyEngine | `core/nodes/strategy.py` | 매매 신호 생성 | StrategyRuntimePort | stub |
 | RiskGuard | `core/nodes/risk_guard.py` | 주문 전 리스크 체크 | StoragePort | stub |
-| OrderExecutor | `core/nodes/order_executor.py` | 주문 실행 | BrokerPort, StoragePort, AuditPort | stub |
+| OrderExecutor | `core/nodes/order_executor.py` | 주문 실행 | OrderPort, StoragePort, AuditPort | stub |
 | TradingFSM | `core/fsm/trading_fsm.py` | 거래 상태 머신 | StoragePort, AuditPort | stub |
 
 **Orchestrator**: `core/orchestrator.py` — 6 Filter 순서 호출, Port만 의존.
@@ -26,7 +26,8 @@
 | Port | SSoT 위치 | 주요 메서드 | Adapter 수 |
 |------|---------|-----------|----------|
 | MarketDataPort | `port-signatures-phase1.md §3.1` | `subscribe`, `unsubscribe`, `get_bar` | 3 |
-| BrokerPort | `port-signatures-phase1.md §3.2` | `submit_order`, `cancel_order`, `get_fills` | 2 |
+| OrderPort | `port-signatures-phase1.md §3.2` | `submit`, `cancel`, `get_order_status` | 2 |
+| AccountPort | `port-signatures-phase1.md §3.2b` | `get_balance`, `get_positions`, `get_position`, `reconcile` | 2 |
 | StoragePort | `port-signatures-phase1.md §3.3` | `save_order`, `save_fill`, `get_positions`, `get_daily_pnl` | 2 |
 | ClockPort | `port-signatures-phase1.md §3.4` | `now`, `sleep` | 2 |
 | StrategyRuntimePort | `port-signatures-phase1.md §3.5` | `load_strategy`, `evaluate` | 1 |
@@ -37,8 +38,8 @@
 | Seam ID | 위치 | 호출 Port | 호출 시점 |
 |---------|------|----------|---------|
 | S-MD-1 | `orchestrator.py` — 매 tick | MarketDataPort.get_bar() | 봉 수신 |
-| S-BR-1 | `order_executor.py` — 주문 시 | BrokerPort.submit_order() | 주문 발생 |
-| S-BR-2 | `order_executor.py` — halt 시 | BrokerPort.cancel_order() | halt |
+| S-OR-1 | `order_executor.py` — 주문 시 | OrderPort.submit() | 주문 발생 |
+| S-OR-2 | `order_executor.py` — halt 시 | OrderPort.cancel() | halt |
 | S-ST-1 | `order_executor.py` — 영속화 | StoragePort.save_order() | 주문 후 |
 | S-ST-2 | `trading_fsm.py` — 전이 시 | StoragePort (전이 기록) | FSM 전이 |
 | S-ST-3 | `risk_guard.py` — 체크 시 | StoragePort.get_positions() | 리스크 |
@@ -54,8 +55,10 @@
 | MarketDataPort | KISWebSocketAdapter | `adapter-spec §4.1` | 실시간 (Phase 2) | — |
 | MarketDataPort | KISRestAdapter | `adapter-spec §4.2` | 폴링 (Phase 2) | — |
 | MarketDataPort | CSVReplayAdapter | `adapter-spec §4.3` | 백테스트 CSV 리플레이 | 3 |
-| BrokerPort | MockBrokerAdapter | `adapter-spec §5.1` | Mock 체결 시뮬레이션 | 7 |
-| BrokerPort | KISPaperBrokerAdapter | `adapter-spec §5.2` | 모의투자 실제 연결 | 11b |
+| OrderPort | MockOrderAdapter | `adapter-spec §5.1` | Mock 체결 시뮬레이션 | 7 |
+| AccountPort | MockAccountAdapter | `adapter-spec §5b.1` | Mock 잔고/포지션 | 7 |
+| OrderPort | KISPaperOrderAdapter | `adapter-spec §5.2` | KIS 주문 API | 11b |
+| AccountPort | KISPaperAccountAdapter | `adapter-spec §5b.2` | KIS 계좌 API | 11b |
 | StoragePort | PostgresStorageAdapter | `adapter-spec §6.1` | DB 영속화 | 9 |
 | StoragePort | InMemoryStorageAdapter | `adapter-spec §6.2` | Step 0~8 pass-through | 0 |
 | ClockPort | WallClockAdapter | `adapter-spec §7.1` | 실제 시계 | 0 |
@@ -66,7 +69,7 @@
 
 **Phase 1 Stub용 FakeAdapter** (저장소에 없으나 Step 0~2에서 생성):
 - inline stub (Step 0) — Step 0~2용 고정 Bar 반환 (Step 3에서 CSVReplayAdapter로 교체)
-- inline stub (Step 0) — Step 0~6용 즉시 체결 (Step 7에서 MockBrokerAdapter로 교체)
+- inline stub (Step 0) — Step 0~6용 즉시 체결 (Step 7에서 MockOrderAdapter + MockAccountAdapter로 교체)
 
 ### Enabling Point — `config/config.yaml` (`config-schema-phase1.md` SSoT)
 
@@ -91,7 +94,7 @@ audit:
 | indicator | sma = bar.close | Step 4 | pandas-ta SMA(20) |
 | strategy | return BUY | Step 5 | SMA 골든크로스 |
 | risk_guard | return True | Step 6,10a,10b | 7체크 로직 |
-| order_executor | print() | Step 7 | MockBrokerAdapter.submit_order() |
+| order_executor | print() | Step 7 | MockOrderAdapter.submit() |
 | trading_fsm | 2상태 | Step 8a,8b | 13상태 (개별 종목 FSM) |
 | storage | dict | Step 9 | PostgresStorageAdapter |
 | audit | print() | Step 9 | PostgresAuditAdapter |

@@ -25,65 +25,70 @@
 
 ## 1. 아키텍처 — 기존 시스템과의 관계
 
-### 1.1 Plug & Play: Adapter 2개 추가
+### 1.1 Plug & Play: Adapter 3개 추가
 
 ```
-기존 12 Adapter (무변경)
+기존 14 Adapter (BrokerPort 분리 후)
   ├── MarketDataPort: KISWebSocket, KISRest, CSVReplay
-  ├── BrokerPort:     MockBroker, KISPaper, (KISLive Phase 2)
+  ├── OrderPort:      MockOrder, KISPaperOrder, (KISLiveOrder Phase 2)
+  ├── AccountPort:    MockAccount, KISPaperAccount, (KISLiveAccount Phase 2)
   └── ...
 
-신규 2 Adapter (추가)
+신규 3 Adapter (가상거래소)
   ├── MarketDataPort: SyntheticMarketAdapter    ← 시세 생성
-  └── BrokerPort:     SyntheticBrokerAdapter    ← 체결 시뮬레이션
+  ├── OrderPort:      SyntheticOrderAdapter     ← 주문 처리
+  └── AccountPort:    SyntheticAccountAdapter   ← 계좌 조회
 ```
 
-왜 2개인가 — **가상거래소는 시세와 체결이 연동**되어야 한다. MockBrokerAdapter는 "마지막 Quote의 가격으로 체결"하지만, SyntheticBrokerAdapter는 **호가창 시뮬레이션 기반 체결**을 한다. 시세 생성 엔진이 호가창 상태를 알아야 체결 가능성을 판단할 수 있으므로, 두 Adapter가 내부적으로 하나의 `ExchangeEngine`을 공유한다.
+왜 3개인가 — **가상거래소도 BrokerPort 분리 원칙을 따른다**. 시세 생성, 주문 매칭, 계좌 관리가 모두 `ExchangeEngine` 내부에서 일어나지만, ATLAS 노드들 입장에서는 각각 다른 Port로 보여야 한다 (단일 책임 원칙). 세 Adapter가 동일한 `ExchangeEngine` 인스턴스를 공유한다.
 
 ### 1.2 config.yaml 모드 추가
 
 ```yaml
 # config/config.yaml
-broker:
-  mode: synthetic          # mock | paper | synthetic (신규)
+order:
+  mode: synthetic          # mock | paper | synthetic | live
+account:
+  mode: synthetic          # mock | paper | synthetic | live
 market_data:
-  mode: synthetic          # ws | poll | csv_replay | synthetic (신규)
+  mode: synthetic          # ws | poll | csv_replay | synthetic
 ```
 
 Adapter Factory 선택 규칙 추가:
 
-| broker.mode | market_data.mode | 어댑터 세트 |
-|-------------|-----------------|------------|
-| synthetic | synthetic | SyntheticBroker + SyntheticMarket + InMemory + HistoricalClock + StdoutAudit |
+| order.mode | account.mode | market_data.mode | 어댑터 세트 |
+|------------|--------------|-----------------|------------|
+| synthetic | synthetic | synthetic | SyntheticOrder + SyntheticAccount + SyntheticMarket + InMemory + HistoricalClock + StdoutAudit |
 
-**반드시 쌍으로 사용**. `broker: synthetic + market_data: ws` 같은 혼합은 금지.
+**반드시 3개 모두 synthetic으로 통일**. 부분 혼합 금지 (ExchangeEngine 공유 무결성).
 
 ### 1.3 내부 구조
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  ExchangeEngine                  │
-│                  (공유 코어)                      │
-│                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
-│  │ PriceGen │  │ OrderBook│  │ MarketRules   │  │
-│  │ (시세생성)│  │ (호가창) │  │ (한국시장규칙)│  │
-│  └────┬─────┘  └────┬─────┘  └───────┬───────┘  │
-│       │              │                │          │
-│       └──────────────┴────────────────┘          │
-│                      │                           │
-│           ┌──────────┴──────────┐                │
-│           │                     │                │
-│  ┌────────▼────────┐  ┌────────▼────────┐       │
-│  │SyntheticMarket  │  │SyntheticBroker  │       │
-│  │Adapter          │  │Adapter          │       │
-│  │(MarketDataPort) │  │(BrokerPort)     │       │
-│  └─────────────────┘  └─────────────────┘       │
-└─────────────────────────────────────────────────┘
-         │                       │
-         ▼                       ▼
-   MarketDataReceiver      OrderExecutor
-   (기존 노드 무변경)     (기존 노드 무변경)
+┌──────────────────────────────────────────────────────────┐
+│                    ExchangeEngine                         │
+│                    (공유 코어)                             │
+│                                                           │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌─────────┐ │
+│  │ PriceGen │  │ OrderBook│  │ Account   │  │Market   │ │
+│  │ (시세생성)│  │ (호가창) │  │ (잔고/포지)│  │Rules    │ │
+│  └────┬─────┘  └────┬─────┘  └─────┬─────┘  └────┬────┘ │
+│       │              │              │             │       │
+│       └──────┬───────┴──────────────┴─────────────┘       │
+│              │                                             │
+│   ┌──────────┼──────────────┬────────────────┐            │
+│   │          │              │                │            │
+│ ┌─▼──────┐ ┌─▼──────────┐ ┌─▼──────────────┐             │
+│ │Synth   │ │Synth       │ │Synth           │             │
+│ │Market  │ │Order       │ │Account         │             │
+│ │Adapter │ │Adapter     │ │Adapter         │             │
+│ └────────┘ └────────────┘ └────────────────┘             │
+└──────────────────────────────────────────────────────────┘
+       │            │                  │
+       ▼            ▼                  ▼
+ MarketData    OrderExecutor     RiskGuard,
+ Receiver                        TradingFSM
+ (무변경)        (무변경)           (무변경)
 ```
 
 ---
@@ -101,7 +106,7 @@ Adapter Factory 선택 규칙 추가:
 
 ```python
 class ExchangeEngine:
-    """가상거래소 핵심 엔진. SyntheticMarket + SyntheticBroker가 공유."""
+    """가상거래소 핵심 엔진. SyntheticMarket + SyntheticOrder + SyntheticAccount가 공유."""
 
     def __init__(self, config: SyntheticExchangeConfig, seed: int):
         self._rng = np.random.default_rng(seed)
@@ -485,16 +490,14 @@ class SyntheticMarketAdapter(MarketDataPort):
 
 ---
 
-## 7. SyntheticBrokerAdapter — BrokerPort 구현
+## 7. SyntheticOrderAdapter — OrderPort 구현
 
 ```python
-class SyntheticBrokerAdapter(BrokerPort):
-    """가상거래소에서 주문 체결"""
+class SyntheticOrderAdapter(OrderPort):
+    """가상거래소에서 주문 처리. 잔고/포지션은 ExchangeEngine 내부 상태에 위임."""
 
     def __init__(self, engine: ExchangeEngine, config: SyntheticExchangeConfig):
         self._engine = engine
-        self._cash = Money(Decimal(config.initial_cash))
-        self._positions: dict[Symbol, Quantity] = defaultdict(int)
         self._fills: dict[UUID, OrderResult] = {}
 
     async def submit(self, order: OrderRequest) -> OrderResult:
@@ -502,19 +505,17 @@ class SyntheticBrokerAdapter(BrokerPort):
         if order.order_uuid in self._fills:
             return self._fills[order.order_uuid]
 
-        # 잔고 체크 (매수 시)
+        # 잔고 체크 (매수 시) — ExchangeEngine 내부 상태 조회
         if order.side == OrderSide.BUY:
             cost = int(order.price) * int(order.quantity)
-            if cost > int(self._cash):
+            if cost > int(self._engine.get_cash()):
                 return OrderResult(order_uuid=order.order_uuid,
                     status=OrderStatus.REJECTED, message="INSUFFICIENT_CASH")
 
         result = self._engine.submit_order(order)
 
-        # 체결 시 잔고/포지션 갱신
-        if result.status == OrderStatus.FILLED:
-            self._apply_fill(order, result)
-
+        # 체결 시 ExchangeEngine 내부에서 잔고/포지션 자동 갱신
+        # (수수료·세금·슬리피지 적용)
         self._fills[order.order_uuid] = result
         return result
 
@@ -525,23 +526,37 @@ class SyntheticBrokerAdapter(BrokerPort):
         if order_uuid in self._fills:
             return self._fills[order_uuid]
         raise DataError(f"Order not found: {order_uuid}")
-
-    async def get_account_balance(self) -> Money:
-        return self._cash
-
-    def _apply_fill(self, order: OrderRequest, result: OrderResult):
-        price = int(result.filled_price)
-        qty = int(result.filled_quantity)
-        fee = round(price * qty * 0.00015)  # 수수료
-
-        if order.side == OrderSide.BUY:
-            self._cash -= Money(Decimal(price * qty + fee))
-            self._positions[order.symbol] += qty
-        else:  # SELL
-            tax = round(price * qty * (0.0018 + 0.0015))  # 거래세 + 농특세
-            self._cash += Money(Decimal(price * qty - fee - tax))
-            self._positions[order.symbol] -= qty
 ```
+
+---
+
+## 7b. SyntheticAccountAdapter — AccountPort 구현
+
+```python
+class SyntheticAccountAdapter(AccountPort):
+    """가상거래소 내부 계좌 상태 조회. ExchangeEngine과 SyntheticOrderAdapter가 공유."""
+
+    def __init__(self, engine: ExchangeEngine):
+        self._engine = engine
+
+    async def get_balance(self) -> Money:
+        return self._engine.get_cash()
+
+    async def get_positions(self) -> list[Position]:
+        return self._engine.get_all_positions()
+
+    async def get_position(self, symbol: Symbol) -> Position | None:
+        return self._engine.get_position(symbol)
+
+    async def reconcile(self) -> dict:
+        # in-process이므로 항상 일관
+        return {'consistent': True, 'discrepancies': []}
+```
+
+> **ExchangeEngine 내부 변경**: 잔고(`_cash`)와 포지션(`_positions`) 관리 책임을
+> SyntheticOrderAdapter에서 ExchangeEngine으로 이관. SyntheticOrderAdapter는 주문만,
+> SyntheticAccountAdapter는 조회만 담당. ExchangeEngine 내부에 `_apply_fill()` 메서드
+> 추가로 체결 시 cash/positions 자동 갱신.
 
 ---
 
@@ -732,19 +747,27 @@ MarketDataPort:
     mock: CSVReplayAdapter
     synthetic: SyntheticMarketAdapter    # 신규
 
-# BrokerPort.adapters에 추가
-BrokerPort:
+# OrderPort.adapters에 추가 (BrokerPort 분리 결과)
+OrderPort:
   adapters:
-    mock: MockBrokerAdapter
-    kis_paper: KISPaperBrokerAdapter
-    kis_live: KISLiveBrokerAdapter
-    synthetic: SyntheticBrokerAdapter    # 신규
+    mock: MockOrderAdapter
+    kis_paper: KISPaperOrderAdapter
+    kis_live: KISLiveOrderAdapter
+    synthetic: SyntheticOrderAdapter     # 신규
 
-# Adapter 선택 규칙 추가
-# | synthetic | synthetic | SyntheticBroker + SyntheticMarket + InMemory + HistoricalClock + StdoutAudit |
+# AccountPort.adapters에 추가 (BrokerPort 분리 결과)
+AccountPort:
+  adapters:
+    mock: MockAccountAdapter
+    kis_paper: KISPaperAccountAdapter
+    kis_live: KISLiveAccountAdapter
+    synthetic: SyntheticAccountAdapter   # 신규
+
+# Adapter 선택 규칙
+# | synthetic | synthetic | synthetic | SyntheticOrder + SyntheticAccount + SyntheticMarket |
 
 # expected_counts 변경
-# adapters_primary: 6 → 8 (Synthetic 2개 추가)
+# ports: 7 (BrokerPort 분리), adapters_primary: 11 (Synthetic 3개 포함)
 ```
 
 ---
@@ -753,16 +776,17 @@ BrokerPort:
 
 | Step | 내용 | 소요 |
 |------|------|------|
-| S1 | `ExchangeEngine` + `GBMPriceGenerator` (Level 1) | 0.5일 |
+| S1 | `ExchangeEngine` + `GBMPriceGenerator` (Level 1) + 내부 cash/positions 관리 | 0.5일 |
 | S2 | `MarketRules` (quant-spec §5 코드화) | 0.5일 |
 | S3 | `SyntheticMarketAdapter` (MarketDataPort 구현) | 0.5일 |
-| S4 | `OrderBook` + `SyntheticBrokerAdapter` | 0.5일 |
+| S4 | `OrderBook` + `SyntheticOrderAdapter` (OrderPort 구현) | 0.5일 |
+| S4b | `SyntheticAccountAdapter` (AccountPort 구현) | 0.3일 |
 | S5 | Level 2 보강 (점프확산, 호가스프레드, 장중변동성) | 0.5일 |
 | S6 | `ScenarioInjector` (이벤트 주입) | 0.5일 |
 | S7 | Monte Carlo 러너 + 산출물 | 0.5일 |
 | S8 | 기존 Step 08(E2E) 연동 테스트 | 0.5일 |
 
-**총 4일.** Walking Skeleton Step 03 이후, Step 08 이전에 끼워넣을 수 있다.
+**총 4.3일.** Walking Skeleton Step 03 이후, Step 08 이전에 끼워넣을 수 있다.
 
 ---
 

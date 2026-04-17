@@ -94,5 +94,5 @@ kis-trade-mcp (Docker, 주문 실행) + kis-code-assistant-mcp (stdio, 코드 �
 → ADR-002 (TrustGraph 범위 제한)
 
 ### Hexagonal Architecture 채택
-BrokerPort / MarketDataPort / StrategyRuntimePort 등 Port & Adapters 구조 확정.  
+OrderPort + AccountPort / MarketDataPort / StrategyRuntimePort 등 Port & Adapters 구조 확정. (BrokerPort는 v2.0에서 OrderPort+AccountPort로 분리)  
 → ADR-001

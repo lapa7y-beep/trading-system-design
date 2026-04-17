@@ -48,8 +48,8 @@ Run 층 (Runbook)     — 지금 무엇을 하는가. 매일 실행.
 | **Scaffold** | 전체 구조의 껍데기 | Step 0 산출물 전체 |
 | **Filter** | 데이터 파이프라인의 처리 단위 | Path 1의 6노드 (MarketDataReceiver, IndicatorCalculator, StrategyEngine, RiskGuard, OrderExecutor, TradingFSM) |
 | **Seam** | 교체 가능 접합부 | Port 호출 지점 (Orchestrator가 Port를 호출하는 모든 위치) |
-| **Port** | Seam을 규정하는 계약. 시그니처는 불변 | 6 Port: MarketDataPort, BrokerPort, StoragePort, ClockPort, StrategyRuntimePort, AuditPort |
-| **Adapter** | Port를 구현하는 구체 클래스 | MockBrokerAdapter, CSVReplayAdapter 등 12 Adapter |
+| **Port** | Seam을 규정하는 계약. 시그니처는 불변 | 7 Port: MarketDataPort, OrderPort, AccountPort, StoragePort, ClockPort, StrategyRuntimePort, AuditPort |
+| **Adapter** | Port를 구현하는 구체 클래스 | MockOrderAdapter, MockAccountAdapter, CSVReplayAdapter 등 16 Adapter |
 | **Stub** | Port를 만족하지만 실제 로직이 없는 임시 구현 | Step 0의 pass-through 함수들 |
 | **Walking Skeleton** | 엔드투엔드 동작하는 최소 골격 | Step 0 ~ Step 2 종료 시점 |
 | **Tracer Bullet** | 모든 층을 관통하는 가장 얇은 실행 가능 경로 | Step 0의 run_once() |
@@ -84,7 +84,7 @@ Run 층 (Runbook)     — 지금 무엇을 하는가. 매일 실행.
 | 4 | IndicatorCalculator 실제 | 실제 지표 값 | 1 | `path1-design.md §2.2` | 1일 |
 | 5 | StrategyEngine 실제 | 조건부 신호 | 1 | `path1-design.md §2.3`, `domain-types-phase1.md §3.4` | 1일 |
 | 6 | RiskGuard 포지션 한도 | 첫 거부 가능 | 2 | `path1-design.md §2.4,§5`, `error-handling-phase1.md §3.4` | 1일 |
-| 7 | MockBrokerAdapter + OrderExecutor | 체결 응답 수신 | 2 | `adapter-spec-phase1.md §5.1`, `path1-design.md §2.5`, `error-handling-phase1.md §3.5` | 1일 |
+| 7 | MockOrderAdapter + MockAccountAdapter + OrderExecutor | 체결 응답 + 계좌 조회 | 2 | `adapter-spec-phase1.md §5.1, §5b.1`, `path1-design.md §2.5`, `error-handling-phase1.md §4.2, §4.2b` | 1일 |
 | 8a | 개별 종목 FSM 기본 4상태 (IDLE/ORDER_PLACED/HOLDING/DONE) | 기본 전이 | 2 | `fsm-design.md §3` (IDLE~HOLDING~DONE 경로만) | 1일 |
 | 8b | 개별 종목 FSM 나머지 (13상태 완전) | 전체 전이 | 2, 5 | `fsm-design.md` 전체, `boot-shutdown.md §3` | 1일 |
 | 9 | DB 영속화 | 주문 DB 기록 | 3 | `db-schema-phase1.sql`, `006-db-stack.md`, `db-stack.md` | 2일 |

@@ -1,6 +1,6 @@
 # 백테스트 파이프라인 (이중 엔진·성과지표·전환기준)
 
-> **목적**: 벡터 기반(빠른 탐색)과 이벤트 기반(정밀 검증) 이중 엔진, MockBrokerAdapter, 성과 지표를 정의한다.
+> **목적**: 벡터 기반(빠른 탐색)과 이벤트 기반(정밀 검증) 이중 엔진, MockOrderAdapter + MockAccountAdapter, 성과 지표를 정의한다.
 > **층**: What
 > **상태**: stable
 > **최종 수정**: 2026-04-16
@@ -10,7 +10,7 @@
 
 **실전 코드와 최대한 공유한다.**
 
-ClockPort·BrokerPort 두 개만 교체. StrategyRuntimePort·FSM·리스크 관리 코드는 실전과 동일.
+ClockPort·OrderPort·AccountPort 세 개만 교체. StrategyRuntimePort·FSM·리스크 관리 코드는 실전과 동일.
 
 ```
 settings.yaml:
@@ -46,7 +46,7 @@ FSM 상태 전이 + MockBroker 체결
 
 ---
 
-## 3. MockBrokerAdapter
+## 3. MockOrderAdapter + MockAccountAdapter
 
 실전과 동일 인터페이스, 내부만 시뮬레이션.
 
