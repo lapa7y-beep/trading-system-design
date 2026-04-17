@@ -2,14 +2,11 @@
 
 > **목적**: Phase 1에서 사용하는 20개 도메인 타입의 Pydantic v2 정의, 사용 예시, 구현 체크리스트를 기술한다.
 > **층**: What
-
-> **구현 여정**: Step 00에서 Bar/Signal/Order/Fill 4개, Step 02에서 나머지 타입 도입. ADR-012 §6 참조.
 > **상태**: stable
+> **구현 여정**: Step 00에서 Bar/Signal/Order/Fill 4개, Step 02에서 나머지 타입 도입. ADR-012 §6 참조.
 > **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
 > **구현 위치**: `core/domain/*.py`
 > **라이브러리**: pydantic v2
-
----
 
 ## 1. 설계 원칙
 

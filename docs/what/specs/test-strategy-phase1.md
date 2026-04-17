@@ -1,15 +1,11 @@
 # Phase 1 테스트 전략 (피라미드·합격기준 자동화·CI)
 
-> **목적**: 단위/통합/합격기준 테스트의 범위, 도구, 자동화 수준, CI 파이프라인을 정의한다.
+> **목적**: Phase 1 구현 시작 전, 단위/통합/합격 기준 테스트의 범위·도구·자동화 수준을 단일 문서로 정의.
 > **층**: What
-
-> **구현 여정**: 각 Step의 테스트 작성 시점은 ADR-012 §8 표 참조. Step별 합격 기준은 Runbook step-NN.md §4.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: Phase 1 구현 시작 전, 단위/통합/합격 기준 테스트의 범위·도구·자동화 수준을 단일 문서로 정의.
+> **구현 여정**: 각 Step의 테스트 작성 시점은 ADR-012 §8 표 참조. Step별 합격 기준은 Runbook step-NN.md §4.
 > **선행 문서**: `docs/what/decisions/011-phase1-scope.md` (합격 기준), `docs/what/specs/project-structure-phase1.md` (tests/ 폴더 구조), `docs/what/specs/error-handling-phase1.md` (실패 시나리오)
-
----
 
 ## 1. 테스트 피라미드
 

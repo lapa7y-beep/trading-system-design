@@ -2,14 +2,11 @@
 
 > **목적**: Path 1의 6노드(MarketDataReceiver~TradingFSM), 14엣지, Pre-Order 7체크, 합격 증명 시나리오를 상세 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 00(전체), 03(MarketData), 05(Strategy), 07(OrderExecutor), 08a/b(FSM)에서 참조. ADR-012 참조.
 > **상태**: stable
 > **버전**: Phase 1 — v1.0
+> **구현 여정**: Step 00(전체), 03(MarketDataReceiver), 05(StrategyEngine), 07(OrderExecutor), 08a/b(TradingFSM)에서 참조. ADR-012 참조.
 > **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
 > **폐기**: 기존 `port_interface_path1_v2.0.md`, `node_blueprint_path1_v1.0.md`는 Phase 1 범위 밖 7개 노드를 포함. Phase 1에서는 본 문서가 우선한다.
-
----
 
 ## 1. Scope 재확인
 

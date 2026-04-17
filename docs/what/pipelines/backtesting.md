@@ -2,18 +2,15 @@
 
 > **목적**: 벡터 기반(빠른 탐색)과 이벤트 기반(정밀 검증) 이중 엔진, MockBrokerAdapter, 성과 지표를 정의한다.
 > **층**: What
-
+> **상태**: stable
+> **최종 수정**: 2026-04-16
 > **구현 여정**: Step 11a(백테스트 + Sharpe 계산)에서 구현. ADR-012 §6 참조.
-> 상태: stable  
-> 날짜: 2026-04-16
-
----
 
 ## 1. 핵심 원칙
 
 **실전 코드와 최대한 공유한다.**
 
-ClockPort·BrokerPort 두 개만 교체. StrategyPort·FSM·리스크 관리 코드는 실전과 동일.
+ClockPort·BrokerPort 두 개만 교체. StrategyRuntimePort·FSM·리스크 관리 코드는 실전과 동일.
 
 ```
 settings.yaml:

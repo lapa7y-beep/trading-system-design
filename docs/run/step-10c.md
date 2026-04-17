@@ -17,7 +17,7 @@ atlas CLI의 start, stop, status 3명령 구현.
 ## 4. 참조 문서 (읽을 순서)
 
 1. `docs/what/architecture/cli-design.md` — §1~5 (설계 원칙~핵심 명령 상세) — CLI 명령 목록과 동작 정의 (15분)
-2. `docs/what/architecture/boot-shutdown-phase1.md` — §2 Boot 시퀀스, §4 Graceful Shutdown — start/stop 시퀀스 상세 (15분)
+2. `docs/what/architecture/boot-shutdown.md` — §2 Boot 시퀀스, §4 Graceful Shutdown — start/stop 시퀀스 상세 (15분)
 
 **이 Step에서 읽지 않는 문서**: backtesting (Step 11)
 

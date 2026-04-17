@@ -65,8 +65,8 @@
 | AuditPort | StdoutAuditAdapter | `adapter-spec §9.2` | Step 0 기본 콘솔 출력 | 0 |
 
 **Phase 1 Stub용 FakeAdapter** (저장소에 없으나 Step 0~2에서 생성):
-- FakeMarketData — Step 0~2용 고정 Bar 반환 (Step 3에서 CSVReplayAdapter로 교체)
-- FakeBroker — Step 0~6용 즉시 체결 (Step 7에서 MockBrokerAdapter로 교체)
+- inline stub (Step 0) — Step 0~2용 고정 Bar 반환 (Step 3에서 CSVReplayAdapter로 교체)
+- inline stub (Step 0) — Step 0~6용 즉시 체결 (Step 7에서 MockBrokerAdapter로 교체)
 
 ### Enabling Point — `config/config.yaml` (`config-schema-phase1.md` SSoT)
 
@@ -109,5 +109,5 @@ audit:
 - `docs/what/specs/port-signatures-phase1.md` — Port 시그니처 SSoT
 - `docs/what/specs/adapter-spec-phase1.md` — Adapter 명세 SSoT
 - `docs/what/specs/config-schema-phase1.md` — 설정 스키마 SSoT
-- `docs/what/architecture/path1-phase1.md` — 6노드 설계
+- `docs/what/architecture/path1-design.md` — 6노드 설계
 - `graph_ir_phase1.yaml` — 노드/엣지 정식 정의

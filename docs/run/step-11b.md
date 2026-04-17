@@ -19,7 +19,7 @@ KIS Paper Trading 환경에서 5영업일 연속 실행. 합격기준 2~5번 동
 1. `docs/what/decisions/011-phase1-scope.md` — §5 합격 기준 전체 — 5개 기준 최종 확인 (10분)
 2. `docs/what/specs/test-strategy-phase1.md` — §5 합격 기준 테스트 전체 — 자동화 테스트 코드 (15분)
 3. `docs/what/specs/error-handling-phase1.md` — §11 KIS 에러 코드 매핑 — 실제 KIS 에러 대응 확인 (10분)
-4. `docs/what/specs/design-validation-report.md` — 전체 — 5차 검증 결과 최종 확인 (10분)
+4. `docs/what/references/design-validation-report.md` — 전체 — 5차 검증 결과 최종 확인 (10분)
 
 **이 Step에서 읽지 않는 문서**: 없음 — Phase 1 최종 검증 Step
 

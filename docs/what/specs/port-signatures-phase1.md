@@ -2,16 +2,12 @@
 
 > **목적**: Phase 1에서 사용하는 6개 Port의 Python ABC 시그니처, PortError 예외 계층, Adapter 매핑을 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 02에서 코드로 구현. Phase 1 종료까지 불변 (ADR-012 §7). 변경 시 ADR 발행 필수.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: Phase 1에서 사용하는 6개 Port의 Python ABC 시그니처를 단일 문서로 정의.
+> **구현 여정**: Step 02에서 코드로 구현. Phase 1 종료까지 불변 (ADR-012 §7). 변경 시 ADR 발행 필수.
+> **선행 문서**: `docs/what/specs/domain-types-phase1.md` (입출력 타입 정의)
 > **구현 위치**: `ports/*.py`
 > **진실의 원천**: `graph_ir_phase1.yaml` → Port 메서드 목록 기준
-> **선행 문서**: `docs/what/specs/domain-types-phase1.md` (입출력 타입 정의)
-
----
 
 ## 1. Port 설계 원칙
 

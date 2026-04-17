@@ -16,7 +16,7 @@ RiskGuard에 변동성·유동성 체크 추가. 7체크 전부 완성.
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/what/architecture/path1-phase1.md` — §5 Pre-Order Check 상세 — 변동성/유동성 항목 — 체크 로직 상세 (10분)
+1. `docs/what/architecture/path1-design.md` — §5 Pre-Order Check 상세 — 변동성/유동성 항목 — 체크 로직 상세 (10분)
 
 **이 Step에서 읽지 않는 문서**: cli-design (Step 10c/d), backtesting (Step 11)
 

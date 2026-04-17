@@ -2,11 +2,9 @@
 
 > **목적**: KIS REST API + APScheduler 기반 시세 수집 원칙과 정형/비정형 파이프라인 구조를 확정한다.
 > **층**: What
-
-> 상태: stable  
-> 날짜: 2026-04-16
-
----
+> **상태**: stable
+> **최종 수정**: 2026-04-16
+> **연계 문서**: 이 결정의 상세 파이프라인: `docs/what/pipelines/data-collection.md`
 
 ## 결정
 

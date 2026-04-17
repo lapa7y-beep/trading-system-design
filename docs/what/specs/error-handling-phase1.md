@@ -2,14 +2,10 @@
 
 > **목적**: 노드별·Port별 에러 유형, Circuit Breaker, SAFE_MODE, 재시도 정책, KIS 에러 코드 매핑을 통합 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 02(PortError), 06~10(CB), 10d(SAFE_MODE)에서 구현. ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: 시스템 전체에서 발생 가능한 에러 유형과 대응 정책을 단일 매트릭스로 통합.
+> **구현 여정**: Step 02(PortError), 06~10(CB), 10d(SAFE_MODE)에서 구현. ADR-012 §6 참조.
 > **선행 문서**: `docs/what/specs/port-signatures-phase1.md` (PortError 계층), `docs/what/specs/adapter-spec-phase1.md` (Adapter 실패 처리), `docs/what/architecture/path1-node-blueprint.md` (노드별 매트릭스), `docs/what/architecture/fsm-design.md`
-
----
 
 ## 1. 에러 처리 4계층 원칙
 

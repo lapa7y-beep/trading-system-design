@@ -16,7 +16,7 @@ Strategy stub을 SMA 골든크로스 로직으로 교체. BUY가 조건부로만
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/what/architecture/path1-phase1.md` — §2.3 StrategyEngine — 전략 로직 설계 (10분)
+1. `docs/what/architecture/path1-design.md` — §2.3 StrategyEngine — 전략 로직 설계 (10분)
 2. `docs/what/specs/domain-types-phase1.md` — §3.4 Signal — Signal 타입 필드 (3분)
 3. `docs/what/specs/adapter-spec-phase1.md` — §8.1 FileSystemStrategyLoader — 전략 파일 로딩 방식 (5분)
 

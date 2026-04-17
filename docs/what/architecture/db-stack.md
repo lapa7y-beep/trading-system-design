@@ -2,13 +2,11 @@
 
 > **목적**: PostgreSQL의 4가지 역할, Redis의 2가지 역할, 저장 원칙, 점진적 분리 경로를 정의한다.
 > **층**: What
-
+> **상태**: stable
+> **최종 수정**: 2026-04-16
 > **구현 여정**: Step 09(DB 영속화)에서 PostgresStorageAdapter로 구현. ADR-012 §6 참조.
-> 상태: stable  
-> 날짜: 2026-04-16  
-> 연관 ADR: 006
-
----
+> **관련 ADR**: 006
+> **연계 문서**: 이 구조를 선택한 배경 ADR: `docs/what/decisions/006-db-stack.md`
 
 ## 1. 확정 스택
 

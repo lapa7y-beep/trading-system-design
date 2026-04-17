@@ -16,7 +16,7 @@ Indicator stub을 pandas-ta SMA(20) 실제 계산으로 교체.
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/what/architecture/path1-phase1.md` — §2.2 IndicatorCalculator — 지표 계산 로직 설계 (10분)
+1. `docs/what/architecture/path1-design.md` — §2.2 IndicatorCalculator — 지표 계산 로직 설계 (10분)
 
 **이 Step에서 읽지 않는 문서**: fsm-design (Step 8), db-schema (Step 9), cli-design (Step 10)
 

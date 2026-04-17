@@ -2,15 +2,12 @@
 
 > **목적**: 종목군 FSM(5상태)과 개별 종목 FSM(13상태)의 전이 규칙, 취약점 대응, 구현 스택을 정의한다.
 > **층**: What
-
+> **상태**: stable
+> **최종 수정**: 2026-04-16
 > **구현 여정**: Step 08a(기본 4상태)와 Step 08b(13상태 완전)에서 구현. ADR-012 §6 참조.
-> 상태: stable  
-> 날짜: 2026-04-16  
-> 연관 ADR: 007
->
-> **Phase 1 주의**: Phase 1은 **개별 종목 FSM 6상태만** 사용한다 (IDLE/ENTRY_PENDING/IN_POSITION/EXIT_PENDING/ERROR/SAFE_MODE). 종목군 FSM(레벨 1)과 개별 종목 FSM 13상태 중 나머지 7상태(WATCHING, SCENARIO_RUNNING, PENDING_APPROVAL, PARTIAL_FILLED, HOLDING, RECONCILING, EXITING)는 Phase 2 이후 활성화. Phase 1 FSM 상세는 [`path1-phase1.md`](path1-phase1.md) Section 2.6 참조.
-
----
+> **관련 ADR**: 007
+> **Phase 1 주의**: Phase 1은 **개별 종목 FSM 6상태만** 사용한다 (IDLE/ENTRY_PENDING/IN_POSITION/EXIT_PENDING/ERROR/SAFE_MODE). 종목군 FSM(레벨 1)과 개별 종목 FSM 13상태 중 나머지 7상태(WATCHING, SCENARIO_RUNNING, PENDING_APPROVAL, PARTIAL_FILLED, HOLDING, RECONCILING, EXITING)는 Phase 2 이후 활성화. Phase 1 FSM 상세는 [`path1-design.md`](path1-design.md) Section 2.6 참조.
+> **연계 문서**: 이 설계의 배경 ADR: `docs/what/decisions/007-fsm-design.md`
 
 ## 1. 이중 레벨 구조
 

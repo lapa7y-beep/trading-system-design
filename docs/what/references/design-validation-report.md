@@ -2,14 +2,11 @@
 
 > **목적**: 5차에 걸친 교차 검증 결과, 발견·수정 내역, 구현 착수 판정을 기록한다.
 > **층**: What
-
 > **구현 여정**: 이 검증 항목들은 ADR-012 17 Step 완료 후 최종 점검 체크리스트로 사용. ADR-012 §9 참조.
-> **실행 일자**: 2026-04-17
 > **범위**: 저장소 `lapa7y-beep/trading-system-design` 전체 활성 문서
 > **대조 기준**: `graph_ir_phase1.yaml` (SSoT)
 > **검증 대상**: 설계작업 1~8의 8개 신규 문서 + 기존 활성 문서
-
----
+> **실행 일자**: 2026-04-17
 
 ## 결과 요약
 
@@ -27,9 +24,9 @@
 | # | 항목 | 검증 범위 | 결과 |
 |---|------|---------|------|
 | 1 | Node 6개 이름 | SSoT = blueprint = struct | ✅ |
-| 2 | Port 6개 이름 | SSoT = ports.md = struct.md | ✅ |
-| 3 | Adapter 12개 목록 | adapters.md = struct.md | ✅ |
-| 4 | Adapter 클래스명 | ports.md §4 = adapters.md §2 = struct.md | ✅ |
+| 2 | Port 6개 이름 | SSoT = port-signatures-phase1.md = struct.md | ✅ |
+| 3 | Adapter 12개 목록 | adapter-spec-phase1.md = struct.md | ✅ |
+| 4 | Adapter 클래스명 | port-signatures-phase1.md §4 = adapter-spec-phase1.md §2 = struct.md | ✅ |
 | 5 | Domain Types 20개 | SSoT = domain-types.md | ✅ |
 | 6 | CLI 12 명령 | cli-design = struct.md (파일 통합 의도적) | ✅ |
 | 7 | DB 테이블 6개 | SSoT = db-schema.sql | ✅ |
@@ -38,12 +35,12 @@
 | 10 | Edges 14개 | SSoT (cli_halt 포함) | ✅ |
 | 11 | Pre-Order 7체크 | SSoT = blueprint = config.md | ✅ |
 | 12 | 합격 기준 5개 | SSoT = test.md = boot.md = cli-design | ✅ |
-| 13 | config 키 (halt_timeout, broker.mode 등) | config.md = boot.md = error.md = adapters.md | ✅ |
+| 13 | config 키 (halt_timeout, broker.mode 등) | config.md = boot.md = error.md = adapter-spec-phase1.md | ✅ |
 | 14 | Screens 14개 (감시4+거래3+거래지원3+설계4) | screen-arch.md v2 | ✅ (v2 재편) |
 | 15 | Severity 4단계 (info/warn/error/critical) | error.md 통합 기준 | ✅ |
 | 16 | 4 Safeguards | SSoT = boot.md §8 | ✅ |
 | 17 | KIS 에러 코드 | blueprint = error.md §11 | ✅ |
-| 18 | Port → Adapter 매핑 | ports.md = adapters.md | ✅ |
+| 18 | Port → Adapter 매핑 | port-signatures-phase1.md = adapter-spec-phase1.md | ✅ |
 | 19 | Boot §2.2 vs error.md §6 SAFE_MODE | 맥락 구분된 의도 (Boot중=중단, 운영중=SAFE) | ✅ |
 | 20 | Domain Types 위치 (primitives/enums/market/...) | domain-types.md = struct.md | ✅ |
 
@@ -156,7 +153,7 @@ for port in MarketDataPort BrokerPort StoragePort ClockPort StrategyRuntimePort 
   echo "=== $port ==="
   grep "methods" graph_ir.yaml  # SSoT
   sed -n "/^class $port(ABC):/,/^class /p" port-signatures-phase1.md \
-    | grep -oE "async def [a-z_]+|def [a-z_]+"  # ports.md
+    | grep -oE "async def [a-z_]+|def [a-z_]+"  # port-signatures-phase1.md
 done
 ```
 
@@ -172,7 +169,7 @@ done
 
 ### 신규 발견 → 수정 완료
 
-**adapters.md 메서드 커버리지 부족 6건** — Port ABC 메서드에 대한 Adapter 설명이 축약되어 있던 것을 보완.
+**adapter-spec-phase1.md 메서드 커버리지 부족 6건** — Port ABC 메서드에 대한 Adapter 설명이 축약되어 있던 것을 보완.
 
 | Adapter | 추가된 메서드 설명 |
 |---------|----------------|
@@ -205,7 +202,7 @@ done
 
 | # | 항목 | 원인 | 조치 |
 |---|------|------|------|
-| 1 | CSVReplayAdapter unsubscribe 미언급 | 2차 검증에서 누락 | adapters.md v1.2에서 보완 |
+| 1 | CSVReplayAdapter unsubscribe 미언급 | 2차 검증에서 누락 | adapter-spec-phase1.md v1.2에서 보완 |
 | 2 | CLI 15개 감지 | 스크립트 오탐 — Phase 2 범위 밖 명령 (`strategy reload`, `metrics export`)까지 매칭 | **문서 정상** (Phase 1 CLI는 정확히 12개) |
 
 ### 수정 파일
@@ -230,7 +227,7 @@ done
 |---|------|------|------|
 | 1 | struct.md에 `OrderType` 미언급 | enums.py 설명에서 5개 Enum 중 `OrderType`만 빠짐 | **struct.md v1.1**: 추가 완료 |
 | 2 | blueprint edge names 6개만 감지 | 정규식 한계 (DataPipe 등 role명이 혼재) | **스크립트 오탐** — 문서 정상 (실제 10개+) |
-| 3 | config.md에 `slippage_bps` 없음 | adapters.md가 `backtest.slippage_bps` 참조하지만 config.md에 backtest 섹션 부재 | **config.md v1.1**: backtest 섹션 신규 추가 |
+| 3 | config.md에 `slippage_bps` 없음 | adapter-spec-phase1.md가 `backtest.slippage_bps` 참조하지만 config.md에 backtest 섹션 부재 | **config.md v1.1**: backtest 섹션 신규 추가 |
 
 ### 수정 파일
 

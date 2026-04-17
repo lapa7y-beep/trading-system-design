@@ -2,12 +2,10 @@
 
 > **목적**: 데이터 저장소로 PostgreSQL + TimescaleDB를 선정한 근거와 Redis 분리 계획을 기록한다.
 > **층**: What
-
-> 상태: stable  
-> 날짜: 2026-04-16  
-> 결정자: jdw
-
----
+> **상태**: stable
+> **최종 수정**: 2026-04-16
+> **결정자**: jdw
+> **연계 문서**: 이 결정의 상세 구현 구조: `docs/what/architecture/db-stack.md`
 
 ## 결정
 

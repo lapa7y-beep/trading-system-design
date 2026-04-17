@@ -19,7 +19,7 @@
 ### 경로 B — 전체 설계를 먼저 파악하려는 경우
 
 1. `docs/what/decisions/011-phase1-scope.md` — Phase 1 범위·합격기준
-2. `docs/what/architecture/path1-phase1.md` — 6노드 상세 설계
+2. `docs/what/architecture/path1-design.md` — 6노드 상세 설계
 3. `graph_ir_phase1.yaml` — 노드/엣지 정식 정의
 4. `docs/what/specs/port-signatures-phase1.md` — 6 Port 시그니처
 5. `docs/what/specs/domain-types-phase1.md` — 20 타입
@@ -54,12 +54,12 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | 파일 | 내용 |
 |------|------|
 | `system-overview.md` | ATLAS 전체 아키텍처 개요 (5 Path, HR-DAG) |
-| `path1-phase1.md` | Phase 1 거래 실행 경로 상세 설계 (6노드·14엣지) |
+| `path1-design.md` | Phase 1 거래 실행 경로 상세 설계 (6노드·14엣지) |
+| `path1-node-blueprint.md` | Phase 1 6노드 내부 상세 (L3 Blueprint) |
 | `fsm-design.md` | 거래 상태 머신 설계 (종목군 5상태 + 개별 13상태) |
 | `cli-design.md` | atlas CLI 명령어 설계 (12명령·IPC·보안) |
 | `db-stack.md` | 데이터 저장소 구조 (PostgreSQL·TimescaleDB·Redis) |
-| `boot-shutdown-phase1.md` | 시스템 기동·종료·긴급정지·크래시복구 시퀀스 |
-| `path1-node-blueprint.md` | Phase 1 6노드 내부 상세 (L3 Blueprint) |
+| `boot-shutdown.md` | 시스템 기동·종료·긴급정지·크래시복구 시퀀스 |
 | `screens/screen-architecture.md` | 화면 아키텍처 (3카테고리·14화면·횡단감시) |
 
 ### 명세 (specs/) — 정확히 무엇인가
@@ -74,7 +74,6 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | `project-structure-phase1.md` | Phase 1 프로젝트 폴더 구조 (Hexagonal 3층·의존방향) |
 | `test-strategy-phase1.md` | Phase 1 테스트 전략 (피라미드·합격기준 자동화·CI) |
 | `db-schema-phase1.sql` | 실행 가능 DDL (6테이블) |
-| `design-validation-report.md` | Phase 1 설계 검증 보고서 (5차 교차검증·188항목) |
 
 ### 파이프라인 (pipelines/) — 데이터가 어떻게 흐르는가
 
@@ -90,6 +89,7 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | `glossary.md` | ATLAS 용어 사전 |
 | `decision-log.md` | 설계 결정 이력 (시간순) |
 | `kis-api-notes.md` | KIS Open API 사용 메모 (환경구분·인증·주의사항) |
+| `design-validation-report.md` | Phase 1 설계 검증 보고서 (5차 교차검증·188항목) |
 
 ---
 
@@ -105,12 +105,38 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 
 ## Run 층 — `docs/run/`
 
+### 보조 문서
+
 | 파일 | 내용 |
 |------|------|
 | `README.md` | Runbook 사용법, 매일 반복 루프, 규칙 |
 | `TEMPLATE.md` | 7섹션 표준 템플릿 |
 | `PROGRESS.md` | 17 Step 진행 상태 + Daily Log |
-| `step-00.md` ~ `step-11b.md` | 17개 Step 실행 절차서 |
+
+### 17 Step 실행 절차서
+
+| Step | 파일 | 산출물 | 합격기준 | 예상 |
+|------|------|-------|--------|------|
+| 00 | `step-00.md` | Walking Skeleton 단일 파일 | 기반 | 1일 |
+| 01 | `step-01.md` | 6파일 분리 | — | 0.5일 |
+| 02 | `step-02.md` | Port 추상화 도입 (6 Port ABC + DI) | 기반 | 1일 |
+| 03 | `step-03.md` | CSVReplayAdapter 구현 | 1 | 1일 |
+| 04 | `step-04.md` | IndicatorCalculator 실제 (pandas-ta SMA) | 1 | 1일 |
+| 05 | `step-05.md` | StrategyEngine 실제 (SMA 골든크로스) | 1 | 1일 |
+| 06 | `step-06.md` | RiskGuard 포지션 한도 1체크 | 2 | 1일 |
+| 07 | `step-07.md` | MockBrokerAdapter + OrderExecutor 실제 | 2 | 1일 |
+| 08a | `step-08a.md` | 개별 종목 FSM 기본 4상태 | 2 | 1일 |
+| 08b | `step-08b.md` | 개별 종목 FSM 나머지 (13상태 완전) | 2, 5 | 1일 |
+| 09 | `step-09.md` | DB 영속화 (PostgreSQL) | 3 | 2일 |
+| 10a | `step-10a.md` | RiskGuard 손실한도 | 2 | 1일 |
+| 10b | `step-10b.md` | RiskGuard 변동성/유동성 | 2 | 1일 |
+| 10c | `step-10c.md` | CLI start/stop/status 3명령 | 기반 | 1일 |
+| 10d | `step-10d.md` | CLI halt 30초 블록 | 4 | 1일 |
+| 11a | `step-11a.md` | 백테스트 + Sharpe 계산 | 1 | 1일 |
+| 11b | `step-11b.md` | 모의투자 5일 검증 | 2,3,4,5 | 5일 |
+
+총 17 Step. 순수 개발 11일 + 모의투자 5일 = 16일.
+상세 근거는 `docs/how/methodology.md` §6 참조.
 
 ---
 

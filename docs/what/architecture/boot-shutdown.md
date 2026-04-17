@@ -2,15 +2,11 @@
 
 > **목적**: ATLAS 데몬의 Boot, Graceful Shutdown, Emergency Halt(30초), Crash Recovery, Resume 절차를 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 10a(부팅), Step 10b(종료)에서 구현. ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: ATLAS 데몬의 기동·정상종료·긴급정지·크래시복구 절차를 단일 문서로 정의.
+> **구현 여정**: Step 10a(부팅), Step 10b(종료)에서 구현. ADR-012 §6 참조.
 > **선행 문서**: `docs/what/architecture/cli-design.md`, `docs/what/architecture/fsm-design.md`, `docs/what/specs/config-schema-phase1.md`, `docs/what/specs/adapter-spec-phase1.md`
 > **관련 Safeguards**: `duplicate_order_prevention`, `state_account_consistency`, `event_durability`
-
----
 
 ## 1. 개요
 

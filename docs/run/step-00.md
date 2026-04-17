@@ -18,7 +18,7 @@
 ## 4. 참조 문서 (읽을 순서)
 
 1. `docs/how/methodology.md` — §4 어휘, §6 Step 0 행 — 방법론 이해 (5분)
-2. `docs/what/architecture/path1-phase1.md` — §2 6노드 설계 — 각 노드의 입출력만 — 6 Filter 이름과 역할 (10분)
+2. `docs/what/architecture/path1-design.md` — §2 6노드 설계 — 각 노드의 입출력만 — 6 Filter 이름과 역할 (10분)
 3. `docs/what/architecture/system-overview.md` — 전체 — 시스템 전체 그림 파악 (5분)
 4. `docs/what/specs/domain-types-phase1.md` — §3.1~3.5 (Primitives~Order) — Bar, Signal, Order, Fill 4타입만 (5분)
 

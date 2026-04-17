@@ -2,7 +2,7 @@
 
 ## 1. 목적
 
-FakeMarketData를 CSVReplayAdapter로 교체. 실제 KOSPI 봉(CSV)이 파이프라인에 흐른다.
+inline stub (Step 0)를 CSVReplayAdapter로 교체. 실제 KOSPI 봉(CSV)이 파이프라인에 흐른다.
 
 ## 2. 합격 기준 매핑
 

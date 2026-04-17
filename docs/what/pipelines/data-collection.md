@@ -2,13 +2,11 @@
 
 > **목적**: KIS REST API 기반 정형 데이터 수집과 비정형 데이터 IngestPort 플러그인 구조를 정의한다.
 > **층**: What
-
+> **상태**: stable
+> **최종 수정**: 2026-04-16
 > **구현 여정**: Step 03(CSVReplayAdapter)에서 CSV 형식 활용. ADR-012 §6 참조.
-> 상태: stable  
-> 날짜: 2026-04-16  
-> 연관 ADR: 008
-
----
+> **관련 ADR**: 008
+> **연계 문서**: 이 파이프라인의 배경 ADR: `docs/what/decisions/008-data-collection.md`
 
 ## 1. 정형 데이터 수집 파이프라인
 

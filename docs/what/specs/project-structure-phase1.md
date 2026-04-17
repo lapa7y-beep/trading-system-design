@@ -2,15 +2,11 @@
 
 > **목적**: 구현 시점의 전체 디렉토리 트리, 파일 책임, Import 규칙, 구현 착수 순서를 정의한다.
 > **층**: What
-
-> **구현 여정**: 17 Step 증분 순서는 ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: 구현 시작 시점의 전체 디렉토리 트리와 각 파일의 책임·의존 관계를 단일 문서로 정의.
-> **선행 문서**: `docs/what/specs/port-signatures-phase1.md`, `docs/what/specs/adapter-spec-phase1.md`, `docs/what/architecture/cli-design.md`, `docs/what/architecture/boot-shutdown-phase1.md`
+> **구현 여정**: 17 Step 증분 순서는 ADR-012 §6 참조.
+> **선행 문서**: `docs/what/specs/port-signatures-phase1.md`, `docs/what/specs/adapter-spec-phase1.md`, `docs/what/architecture/cli-design.md`, `docs/what/architecture/boot-shutdown.md`
 > **구현 시작 지점**: 이 구조가 확정되면 `atlas/` 코드 베이스 착수.
-
----
 
 ## 1. 설계 원칙
 

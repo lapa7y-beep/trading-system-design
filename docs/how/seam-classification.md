@@ -28,14 +28,14 @@ Python Protocol + 런타임 DI + YAML 설정. 타입 안전성은 mypy + pydanti
 - Adapter 3개: KISWebSocketAdapter / KISRestAdapter / CSVReplayAdapter
 - 교체 난이도: **중**
 - 핵심 리스크: WebSocket 재연결 중 bar 누락
-- Stub 경로: FakeMarketData(Step 0) → CSVReplayAdapter(Step 3) → KIS(Step 11b)
+- Stub 경로: inline stub (Step 0)(Step 0) → CSVReplayAdapter(Step 3) → KIS(Step 11b)
 
 ### 3.2 BrokerPort — Replaceable + Stateful
 
 - Adapter 2개: MockBrokerAdapter / KISPaperBrokerAdapter
 - 교체 난이도: **높음** (Phase 1 최고 위험)
 - 핵심 리스크: intent_id 기반 중복주문방지, 부분체결, 취소 지연
-- Stub 경로: FakeBroker(Step 0) → MockBrokerAdapter(Step 7) → KISPaper(Step 11b)
+- Stub 경로: inline stub (Step 0)(Step 0) → MockBrokerAdapter(Step 7) → KISPaper(Step 11b)
 
 ### 3.3 StoragePort — Stateful
 

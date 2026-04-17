@@ -2,13 +2,10 @@
 
 > **목적**: atlas 명령줄 도구의 12개 명령, 프로세스 아키텍처, IPC 방식, 보안 장치를 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 10c(start/stop/status)와 Step 10d(halt 30초)에서 구현. ADR-012 §6 참조.
 > **상태**: stable
-> **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
 > **배경**: Phase 1에서 Telegram Bot을 제외(α 선택)함에 따라, 운영 제어는 CLI로 일원화.
-
----
+> **구현 여정**: Step 10c(start/stop/status)와 Step 10d(halt 30초)에서 구현. ADR-012 §6 참조.
+> **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
 
 ## 1. 설계 원칙
 

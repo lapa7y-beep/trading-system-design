@@ -2,12 +2,8 @@
 
 > **목적**: 6개 노드 각각의 내부 로직, 설정 키, 에러 핸들링, 테스트 시나리오를 L3 수준으로 기술한다.
 > **층**: What
-
 > **상태**: stable
-> **선행 문서**: `docs/what/architecture/path1-phase1.md` (노드 개요), `graph_ir_phase1.yaml` (SSoT)
-> **목적**: 6개 노드 각각의 내부 로직, 설정 키, 에러 핸들링, 테스트 시나리오를 L3 수준으로 기술
-
----
+> **선행 문서**: `docs/what/architecture/path1-design.md` (노드 개요), `graph_ir_phase1.yaml` (SSoT)
 
 ## 1. MarketDataReceiver
 

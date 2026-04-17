@@ -2,15 +2,11 @@
 
 > **목적**: config/config.yaml의 전체 구조, 타입, 기본값, 유효범위, 브로커 전환 명세를 정의한다.
 > **층**: What
-
-> **구현 여정**: Step 02(Enabling Point 설정)에서 참조. ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
-> **목적**: `config/config.yaml`의 전체 구조, 타입, 기본값, 유효범위를 단일 문서로 정의.
-> **진실의 원천**: 이 문서 ↔ `docs/what/architecture/path1-node-blueprint.md` 상호 참조.
+> **구현 여정**: Step 02(Enabling Point 설정)에서 참조. ADR-012 §6 참조.
 > **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
-
----
+> **진실의 원천**: 이 문서 ↔ `docs/what/architecture/path1-node-blueprint.md` 상호 참조.
 
 ## 1. 파일 구조 개요
 
