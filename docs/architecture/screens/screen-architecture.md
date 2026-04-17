@@ -1,7 +1,7 @@
 # ATLAS Screen Architecture v2
 
 > 상태: confirmed
-> 레이아웃: v2.1 (전체 14화면 내부 레이아웃 추가)
+> 레이아웃: v2.3 (구현 도구 기준 전면 재작성)
 > 최종 수정: 2026-04-17 (v2.1)
 > 변경 사유: 4 카테고리 → 3 카테고리 + 횡단 감시. Path 쌍 기반 재분류.
 
@@ -289,6 +289,534 @@ ATLAS                        ┌─ 감시 (횡단 오버레이) ─┐
 - [x] v1 방향 B — 화면 간 전환 흐름
 - [x] v1 방향 C Phase 1~2 — P1 Trading + 5 화면 큰 테두리
 - [x] **v2 — 카테고리 재편 (3 + 횡단)**
+- [x] **v2.1 — 전체 14화면 내부 레이아웃**
+- [x] **v2.2 — 프론트엔드 기술스택 확정 + FastAPI 레이어 설계**
+- [ ] Phase 2-0 구현 — FastAPI 서버 + Grafana 패널 + HTML 제어 + Telegram Bot
+- [ ] Phase 2A 진입 — Path 6 Market Intelligence
+
+---
+
+## 12. 프론트엔드 기술스택 확정 (v2.2)
+
+> 결정일: 2026-04-17
+> 기준: 프론트엔드 경험 최소 + 백엔드 중심 + React 전환 경로 확보
+
+### 12.1 전략: A+B 조합
+
+| 구분 | 도구 | 역할 | 한계 |
+|------|------|------|------|
+| A | Telegram Bot | 긴급 제어 + 승인 (모바일) | 복잡한 폼 불가 |
+| B-읽기 | Grafana | 모니터링/차트/수치 시각화 | 버튼 없음 |
+| B-쓰기 | HTML + FastAPI | 제어/설정 화면 (버튼, 폼) | React보다 단순 |
+
+### 12.2 화면별 구현 도구
+
+| 화면 | 도구 | 이유 |
+|------|------|------|
+| Overview KPI/차트 | Grafana | 읽기 전용, SQL 직결 |
+| P1 Trading Monitor (차트) | Grafana | OHLCV 시계열 |
+| P1 Trading Control | HTML (버튼) + Telegram | HALT/Resume/Stop |
+| P1 Trading Policy | HTML (폼) | config 편집 |
+| P4 Portfolio 성과 | Grafana | 차트/수치 |
+| Strategy Edit/Backtest | HTML (편집기/폼) | 파일 R/W + 실행 |
+| Knowledge | Grafana (현황) | Phase 3까지 최소 |
+| Market data | Grafana | 수집 현황 |
+| Health | Grafana + HTML | Safeguards 표시 + HALT 버튼 |
+| System | Grafana | EventBus/Docker/Scheduler |
+| Notify | HTML (설정폼) | 채널 ON/OFF |
+| Rules | HTML (승인버튼) + Telegram | ApprovalGate |
+| 설계 4화면 | Phase 2+ 별도 | LiteGraph.js 등 |
+
+### 12.3 FastAPI 엔드포인트 요약
+
+```
+읽기 (GET)
+  /api/status  /api/health  /api/audit
+  /api/positions  /api/pnl  /api/orders  /api/orders/live
+  /api/config  /api/strategies  /api/strategies/{name}
+  /api/backtest/{job_id}
+
+쓰기 (POST)
+  /api/control/halt  /api/control/resume  /api/control/stop
+  /api/config  /api/strategies/{name}  /api/backtest
+
+실시간 (WebSocket)
+  /ws/fsm      ← FSM 상태 변화 push
+  /ws/orders   ← 체결/거절 이벤트 push
+
+합계: REST 14 + WS 2 = 16 엔드포인트
+```
+
+### 12.4 React 전환 경로
+
+```
+Phase 2-0 (지금)          Phase 2+ (필요 시)
+─────────────────         ─────────────────
+FastAPI API   ──────────▶ FastAPI API (무변경)
+WebSocket     ──────────▶ WebSocket (무변경)
+Grafana 패널  ──────────▶ React 차트 컴포넌트
+HTML static/  ──────────▶ React build 결과물
+
+전환 비용: 프론트엔드만 교체. 백엔드 재설계 없음.
+전환 조건: Grafana+HTML 안정화 후 React 학습 or Claude Code 활용
+```
+
+### 12.5 핵심 규칙
+
+```
+1. HTML 로직 금지 — fetch()/WebSocket 호출과 표시만
+2. 모든 API 응답 JSON — HTML/React 동일 재사용
+3. 제어는 control_file.py 경유 — CLI와 동일 경로
+4. 긴급 제어는 Telegram 우선 — 폰에서 /halt가 가장 빠름
+```
+
+---
+
+## 10. 화면 내부 레이아웃 (v2.3 — 구현 도구 기준 전면 재작성)
+
+> 최종 수정: 2026-04-17 (v2.3)
+> 기준: 3카테고리 + 횡단 감시, 14화면, 구현 도구 확정
+>
+> **구현 도구 범례**
+> - `[Grafana]` — PostgreSQL 직결, 읽기 전용, 버튼 없음
+> - `[HTML]`    — FastAPI /static/ 서빙, 버튼/폼 중심
+> - `[Telegram]`— Bot 명령으로 대체, 별도 화면 없음
+> - `[CLI]`     — Phase 1 대응 명령어
+> - `[Phase N]` — 구현 시점
+
+---
+
+### 10.1 거래 — Overview `[Grafana]` `[Phase 2-0]`
+
+Grafana 대시보드. 버튼 없음. PostgreSQL 직결 SQL 쿼리로 패널 구성.
+
+| 패널 | Grafana 패널 타입 | SQL 소스 | Phase 1 대응 |
+|------|-----------------|---------|-------------|
+| 일간 P&L | Stat | `SELECT SUM(realized_pnl) FROM trades WHERE date=today` | `atlas pnl` |
+| 보유 포지션 수 | Stat | `SELECT COUNT(*) FROM positions WHERE quantity > 0` | `atlas positions` |
+| 오늘 체결 수 | Stat | `SELECT COUNT(*) FROM trades WHERE date=today` | `atlas orders` |
+| 누적 수익률 + Sharpe | Stat | `SELECT total_return, sharpe FROM daily_pnl ORDER BY date DESC LIMIT 1` | `atlas pnl` |
+| 포지션 현황 테이블 | Table | `SELECT symbol, quantity, avg_price, unrealized_pnl FROM positions` | `atlas positions` |
+| 전략별 성과 | Bar chart | `SELECT strategy_id, SUM(pnl) FROM trades GROUP BY strategy_id` | `atlas pnl` |
+| 체결 내역 | Table | `SELECT executed_at, symbol, side, qty, price, strategy_id FROM trades ORDER BY executed_at DESC LIMIT 50` | `atlas orders` |
+
+**Grafana 대시보드 파일**: `grafana/dashboards/overview.json`
+
+---
+
+### 10.2 거래 — P1 Trading
+
+#### Monitor 탭 `[Grafana]` `[Phase 2-0]`
+
+| 패널 | Grafana 패널 타입 | SQL/소스 | Phase 1 대응 |
+|------|-----------------|---------|-------------|
+| FSM 상태 (종목별) | Table | `SELECT symbol, fsm_state FROM positions` | `atlas status` |
+| 노드 파이프라인 상태 | Stat × 4 | `/api/health` WebSocket | Phase 2 |
+| OHLCV 차트 (1분봉 + MA) | TimeSeries | `SELECT ts, open,high,low,close FROM market_ohlcv WHERE symbol=? ORDER BY ts` | Phase 2 |
+| 주문 로그 | Table (실시간) | `SELECT executed_at,symbol,side,qty,price,status,reject_reason FROM order_tracker ORDER BY created_at DESC` | `atlas orders` |
+
+**Grafana 대시보드 파일**: `grafana/dashboards/p1_monitor.json`
+
+#### Control 탭 `[HTML]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/control.html`
+FastAPI 엔드포인트: `POST /api/control/*`
+
+```
+┌─────────────────────────────────────────┐
+│ P1 Trading — Control                    │
+├─────────────────────────────────────────┤
+│  시스템 제어                             │
+│  [⏸ HALT]   [▶ Resume]   [■ Stop]      │
+│  ← POST /api/control/halt|resume|stop   │
+│                                         │
+│  Mode:  AUTO ◉   MANUAL ○               │
+│  ← POST /api/control/mode               │
+├─────────────────────────────────────────┤
+│  포지션 조치 (Phase 2)                   │
+│  005930  [손절 청산]  [전량 청산]          │
+│  000660  [손절 청산]  [전량 청산]          │
+│  ← POST /api/positions/{symbol}/close   │
+├─────────────────────────────────────────┤
+│  Master: [전 포지션 청산] ← 더블 확인     │
+│  ← POST /api/positions/close_all        │
+├─────────────────────────────────────────┤
+│  조치 이력                               │
+│  ← GET /api/audit?type=control          │
+└─────────────────────────────────────────┘
+```
+
+**긴급 HALT**: Telegram `/halt` 명령이 우선 — 폰에서 즉시 실행 가능
+
+#### Policy 탭 `[HTML]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/policy.html`
+FastAPI 엔드포인트: `GET/POST /api/config`
+
+```
+┌─────────────────────────────────────────┐
+│ P1 Trading — Policy                     │
+├─────────────────────────────────────────┤
+│  활성 전략 (체크박스)                    │
+│  ☑ ma_crossover  ☑ rsi_reversal         │
+│                                         │
+│  리스크 파라미터 (입력 폼)               │
+│  max_cash_usage    [95  ]%               │
+│  max_position_pct  [20  ]%               │
+│  max_daily_loss    [-2  ]%               │
+│  max_daily_trades  [40  ]                │
+│  trading_hours     [09:00] ~ [15:20]     │
+│  circuit_breaker   [3  ] / [60  ]s       │
+│                                         │
+│  Watchlist (종목 목록)                   │
+│  [005930] [000660] [035720] [+ 추가]     │
+│                                         │
+│  [Save] ← POST /api/config              │
+│  ← pydantic Validator 통과 후 저장       │
+└─────────────────────────────────────────┘
+```
+
+#### Test 탭 `[HTML]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/strategy.html` (Strategy Backtest 탭과 공유)
+FastAPI 엔드포인트: `POST /api/backtest`
+
+```
+┌─────────────────────────────────────────┐
+│ P1 Trading — Test                       │
+├─────────────────────────────────────────┤
+│  전략    [ma_crossover.py ▼]             │
+│  기간    [2024-01-01] ~ [2025-12-31]     │
+│  초기자본 [100,000,000]                  │
+│  종목    [005930, 000660]                │
+│                                         │
+│  [▶ Run Backtest]                       │
+│  ← POST /api/backtest                   │
+│  ← atlas backtest (Phase 1 CLI 직접)    │
+├─────────────────────────────────────────┤
+│  결과 (GET /api/backtest/{job_id})       │
+│  Sharpe  [1.24 ✓]   Return  [+18.4%]   │
+│  MDD     [-8.7%]    Trades  [47]        │
+│  Win Rate [58.5%]                        │
+│                                         │
+│  Equity Curve: Phase 2 Grafana 패널      │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### 10.3 거래 — P4 Portfolio `[Grafana]` `[Phase 2B]`
+
+Grafana 대시보드. 버튼 없음. 리밸런싱 실행은 Telegram `/rebalance` 명령.
+
+| 패널 | Grafana 패널 타입 | SQL 소스 |
+|------|-----------------|---------|
+| 총 자산 + 누적 수익률 | Stat | `daily_pnl` 최신 행 |
+| Sharpe / MDD | Stat | `daily_pnl` 집계 |
+| 종목별 비중 | PieChart | `positions` |
+| 전략별 수익률 | Bar chart | `trades GROUP BY strategy_id` |
+| 수익률 곡선 | TimeSeries | `daily_pnl ORDER BY trade_date` |
+| 리스크 지표 (HHI) | Stat | `positions` 집중도 계산 |
+
+**리밸런싱 실행**: Telegram `/rebalance` → ApprovalGate → OrderGate 경유
+
+**Grafana 대시보드 파일**: `grafana/dashboards/portfolio.json`
+
+---
+
+### 10.4 거래 지원 — Strategy
+
+#### Edit 탭 `[HTML]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/strategy.html`
+FastAPI 엔드포인트: `GET/POST /api/strategies/{name}`
+
+```
+┌─────────────────────────────────┬────────────────────────────────┐
+│ 전략 목록                        │ 코드 편집기                     │
+│ ─────────────────────────────── │ ────────────────────────────── │
+│ ▶ ma_crossover.py  v1.0         │ class MACrossover(BaseStrategy):│
+│   rsi_reversal.py  v0.3         │   def __init__(self):           │
+│   bollinger.py     v0.1         │     self.fast = 5               │
+│                                 │     self.slow = 20              │
+│ [+ 새 전략]                      │   def evaluate(self, data):     │
+│ ← GET /api/strategies           │     ...                         │
+│                                 │ ← GET /api/strategies/{name}    │
+│ 파라미터                         │                                 │
+│ fast_period  [5 ]               │ [저장]  [→ Backtest 실행]        │
+│ slow_period  [20]               │ ← POST /api/strategies/{name}   │
+│ stop_loss    [3%]               │                                 │
+└─────────────────────────────────┴────────────────────────────────┘
+```
+
+#### Backtest 탭 `[HTML]` `[Phase 2-0]`
+
+P1 Test 탭과 동일 HTML 공유. `POST /api/backtest` 재사용.
+
+#### Optimize 탭 `[HTML]` `[Phase 2A]`
+
+HTML 파일: `atlas/api/static/optimize.html`
+FastAPI 엔드포인트: `POST /api/optimize`
+
+```
+┌─────────────────────────────────────────┐
+│ 파라미터 범위 설정 (Grid Search)          │
+│  fast_period   min[3] max[10] step[1]   │
+│  slow_period   min[15] max[30] step[5]  │
+│  조합 수: 56가지                          │
+│  [▶ Run Grid Search]                    │
+├─────────────────────────────────────────┤
+│ 최적 파라미터 Top 3                      │
+│  #1  fast=5  slow=20  Sharpe 1.24       │
+│  #2  fast=5  slow=25  Sharpe 1.18       │
+│  [#1 적용 → Edit]                        │
+├─────────────────────────────────────────┤
+│ Walk-Forward 과적합 지수: 0.82  양호      │
+└─────────────────────────────────────────┘
+```
+
+#### History 탭 `[HTML]` `[Phase 2-0]`
+
+FastAPI 엔드포인트: `GET /api/strategies/{name}/history`
+
+```
+┌─────────────────────────────────────────┐
+│ 전략 버전 이력                            │
+│  ma_crossover                            │
+│  ├── v1.0  2026-04-15  Sharpe 1.24 ★   │
+│  ├── v0.9  2026-04-10  Sharpe 1.18      │
+│  └── v0.8  2026-04-05  Sharpe 0.92      │
+│                                         │
+│  선택 버전 상세                           │
+│  작성일: 2026-04-15                      │
+│  변경 내용: fast 7→5 수정                │
+│  [이 버전으로 복원]                       │
+│  ← POST /api/strategies/{name}/restore  │
+└─────────────────────────────────────────┘
+```
+
+**전략 버전 저장소**: `strategies/` 파일 + git 이력 활용
+
+---
+
+### 10.5 거래 지원 — Knowledge `[Grafana]` + `[HTML]` `[Phase 3]`
+
+Phase 3 전까지 최소 구현.
+
+| 서브탭 | 도구 | 내용 |
+|--------|------|------|
+| Build | HTML 폼 | 수집 소스 설정, 수집 주기, [수집 실행] 버튼 |
+| Explore | Grafana | 온톨로지 노드·엣지 수 Stat 패널 + 검색 입력 (Phase 3) |
+| Quality | Grafana | 중복/이상 건수 Stat 패널 |
+
+**Grafana 대시보드 파일**: `grafana/dashboards/knowledge.json` (Phase 3)
+
+---
+
+### 10.6 거래 지원 — Market data `[Grafana]` `[Phase 2-0]`
+
+Grafana 대시보드. 버튼 없음. 수집 종목 변경은 Policy 탭(config.yaml) 경유.
+
+| 패널 | Grafana 패널 타입 | SQL 소스 |
+|------|-----------------|---------|
+| KIS WS 연결 상태 | Stat | `/api/health` 파생 |
+| 활성 종목 수 | Stat | `SELECT COUNT(DISTINCT symbol) FROM market_ohlcv WHERE ts > NOW()-INTERVAL '5m'` |
+| 오늘 수집 봉 수 | Stat | `SELECT COUNT(*) FROM market_ohlcv WHERE DATE(ts)=today` |
+| 마지막 수집 시각 | Stat | `SELECT MAX(ts) FROM market_ohlcv` |
+| OHLCV 미리보기 | Table | `SELECT symbol,ts,open,high,low,close,volume FROM market_ohlcv ORDER BY ts DESC LIMIT 20` |
+| 저장 지연 | Stat | `MAX(ts) vs NOW()` diff |
+
+**Grafana 대시보드 파일**: `grafana/dashboards/market_data.json`
+
+---
+
+### 10.7 감시 횡단 — Health `[Grafana]` + `[Telegram]` `[Phase 2-0]`
+
+읽기 부분은 Grafana. 긴급 제어(HALT/KILL)는 Telegram 명령으로 대체 — 화면에 버튼 없음.
+
+| 패널 | 도구 | 내용 |
+|------|------|------|
+| Safeguards 4개 상태 | Grafana Stat | `/api/health` JSON → Grafana JSON datasource |
+| 노드 파이프라인 13개 | Grafana Stat | `/api/status` |
+| 계좌 일관성 | Grafana Table | `SELECT * FROM audit_events WHERE type='account_reconcile' ORDER BY occurred_at DESC LIMIT 5` |
+| 감사 로그 | Grafana Table | `SELECT occurred_at, severity, message FROM audit_events ORDER BY occurred_at DESC LIMIT 30` |
+
+```
+긴급 제어:
+  Telegram /halt    → POST /api/control/halt (Bot 경유)
+  Telegram /kill    → POST /api/control/stop (Bot 경유)
+  (화면 버튼 없음 — Telegram이 유일한 긴급 제어 채널)
+```
+
+**Grafana 대시보드 파일**: `grafana/dashboards/health.json`
+
+---
+
+### 10.8 감시 횡단 — System `[Grafana]` `[Phase 2-0]`
+
+전부 Grafana. 버튼 없음. Scheduler 설정 변경은 config.yaml(Policy) 경유.
+
+| 패널 | Grafana 패널 타입 | 소스 |
+|------|-----------------|------|
+| EventBus 처리량 | TimeSeries | Redis INFO + Prometheus exporter |
+| EventBus 적체 | Stat | Redis Streams XLEN |
+| PostgreSQL 연결 | Stat | Grafana PostgreSQL datasource health |
+| Redis 연결 | Stat | Redis Prometheus exporter |
+| Docker 컨테이너 | Table | Cadvisor + Prometheus |
+| Scheduler 현황 | Table | `SELECT job_id, next_run, last_run FROM scheduler_log` (Phase 2) |
+| 6개 공유 저장소 상태 | Stat × 6 | 각 테이블 COUNT + 최신 ts |
+| 디스크/메모리 | Gauge | Node exporter |
+
+**Grafana 대시보드 파일**: `grafana/dashboards/system.json`
+**추가 docker-compose 서비스**: `prometheus`, `grafana`, `cadvisor`, `redis-exporter`
+
+---
+
+### 10.9 감시 횡단 — Notify `[HTML]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/notify.html`
+알림 이력 조회는 Grafana 패널로.
+
+```
+┌─────────────────────────────────────────┐
+│ 감시 > Notify                           │
+├─────────────────────────────────────────┤
+│ 채널 상태 (읽기 전용 — Grafana 임베드)    │
+│  Telegram  CONNECTED ●                  │
+│  Discord   CONNECTED ●                  │
+├─────────────────────────────────────────┤
+│ 채널 설정 (폼 — HTML)                    │
+│  체결 알림      [ON ◉] [OFF ○]          │
+│  에러 알림      [ON ◉] [OFF ○]          │
+│  일일 리포트    [15:50]                  │
+│  승인 요청 채널 [Telegram ▼]             │
+│                                         │
+│  [Save] ← POST /api/config (notify 섹션)│
+├─────────────────────────────────────────┤
+│ 알림 이력 (Grafana iframe 임베드)         │
+│  SELECT occurred_at, message            │
+│  FROM audit_events WHERE type='notify'  │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### 10.10 감시 횡단 — Rules `[HTML]` + `[Telegram]` `[Phase 2-0]`
+
+HTML 파일: `atlas/api/static/rules.html`
+승인 실행은 Telegram `/approve {id}` 명령이 주. HTML은 조회 + 보조.
+
+```
+┌─────────────────────────────────────────┐
+│ 감시 > Rules                            │
+├─────────────────────────────────────────┤
+│ 승인 대기 (ApprovalGate)                 │
+│  대기 없음 (현재)                         │
+│  ← GET /api/approvals/pending           │
+│                                         │
+│  승인은 Telegram /approve {id} 우선      │
+│  [승인] [거절] 버튼은 보조 수단            │
+│  ← POST /api/approvals/{id}/approve     │
+├─────────────────────────────────────────┤
+│ Watchdog 규칙 목록                       │
+│  ┌─────────────────────────────────┐    │
+│  │ 일일 손실 한도  max_daily_loss>3% │    │
+│  │ → HALT                          │    │
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ 연속 거절  rejected>5/60s        │    │
+│  │ → PAUSE                         │    │
+│  └─────────────────────────────────┘    │
+│  [+ 규칙 추가]  [규칙 테스트]            │
+│  ← POST /api/rules                      │
+├─────────────────────────────────────────┤
+│ 승인 이력 (Grafana iframe 임베드)         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### 10.11 구현 도구 전체 요약
+
+| 화면 | 도구 | Phase | 버튼 여부 |
+|------|------|-------|----------|
+| Overview | Grafana | 2-0 | 없음 |
+| P1 Trading Monitor | Grafana | 2-0 | 없음 |
+| P1 Trading Control | HTML + Telegram | 2-0 | 있음 (HALT/Resume/Stop) |
+| P1 Trading Policy | HTML | 2-0 | 있음 (Save) |
+| P1 Trading Test | HTML | 2-0 | 있음 (Run) |
+| P4 Portfolio | Grafana | 2B | 없음 |
+| Strategy Edit | HTML | 2-0 | 있음 (저장) |
+| Strategy Backtest | HTML | 2-0 | 있음 (Run) |
+| Strategy Optimize | HTML | 2A | 있음 (Run) |
+| Strategy History | HTML | 2-0 | 있음 (복원) |
+| Knowledge | Grafana + HTML | 3 | 최소 |
+| Market data | Grafana | 2-0 | 없음 |
+| Health | Grafana + Telegram | 2-0 | 없음 (Telegram 대체) |
+| System | Grafana | 2-0 | 없음 |
+| Notify | HTML + Grafana iframe | 2-0 | 있음 (Save) |
+| Rules | HTML + Telegram | 2-0 | 있음 (보조) |
+| 설계 4화면 | Phase 2+ 별도 | 2+ | — |
+
+**Grafana 대시보드 파일 목록**
+```
+grafana/dashboards/
+├── overview.json
+├── p1_monitor.json
+├── portfolio.json
+├── market_data.json
+├── health.json
+├── system.json
+└── knowledge.json   (Phase 3)
+```
+
+**HTML 파일 목록**
+```
+atlas/api/static/
+├── index.html       ← 메인 레이아웃 (Grafana iframe + 제어 링크)
+├── control.html     ← HALT/Resume/Stop
+├── policy.html      ← config.yaml 편집 폼
+├── strategy.html    ← 전략 편집 + Backtest + History
+├── optimize.html    ← Grid Search (Phase 2A)
+├── notify.html      ← 채널 설정
+└── rules.html       ← 규칙 목록 + 승인 보조
+```
+
+---
+
+### 10.12 Phase 1 ↔ CLI 전체 매핑
+
+| 화면 영역 | Phase 1 CLI | Phase 2 API |
+|----------|------------|-------------|
+| Overview KPI | `atlas status` / `atlas pnl` / `atlas positions` | `GET /api/status`, `/api/pnl`, `/api/positions` |
+| Overview 체결 | `atlas orders` | `GET /api/orders` |
+| P1 Monitor FSM | `atlas status` | `WS /ws/fsm` |
+| P1 Monitor 주문 | `atlas orders` | `WS /ws/orders` |
+| P1 Control HALT | `atlas halt` | `POST /api/control/halt` + Telegram `/halt` |
+| P1 Control Resume | `atlas resume` | `POST /api/control/resume` |
+| P1 Test Backtest | `atlas backtest <file>` | `POST /api/backtest` |
+| P1 Policy 설정 | `config.yaml` 직접 편집 | `GET/POST /api/config` |
+| Market data 상태 | `atlas status` | `GET /api/status` |
+| Health Safeguards | `atlas status` | `GET /api/health` |
+| Health 긴급 제어 | `atlas halt` | Telegram `/halt` (화면 버튼 없음) |
+| Health 감사 로그 | `atlas audit` | `GET /api/audit` |
+| Strategy 파일 | 직접 편집 | `GET/POST /api/strategies/{name}` |
+| P4 Portfolio | — (Phase 2B) | `GET /api/positions` + `daily_pnl` |
+| Knowledge | — (Phase 3) | — |
+| System | — (Phase 2) | Grafana + Prometheus |
+| Notify | — (Phase 2) | `POST /api/config` (notify 섹션) |
+| Rules | — (Phase 2) | `GET/POST /api/approvals`, `/api/rules` |
+| 설계 4화면 | — (Phase 2+) | — |
+
+## 11. 다음 단계
+
+- [x] v1 방향 D — 구조 .md로 고정
+- [x] v1 방향 A — 공통 외곽 프레임 설계
+- [x] v1 방향 B — 화면 간 전환 흐름
+- [x] v1 방향 C Phase 1~2 — P1 Trading + 5 화면 큰 테두리
+- [x] **v2 — 카테고리 재편 (3 + 횡단)**
+- [x] **v2.3 — §10 전체 재작성 (구현 도구 기준)**
+- [x] **v2.2 — §12 프론트엔드 기술스택 확정**
 - [x] **v2.1 — 전체 14화면 내부 레이아웃**
 - [x] **v2.2 — 프론트엔드 기술스택 확정 + FastAPI 레이어 설계**
 - [ ] Phase 2-0 구현 — FastAPI 서버 + Grafana 패널 + HTML 제어 + Telegram Bot
