@@ -1,262 +1,131 @@
-# INDEX — 문서 지도
+# ATLAS 문서 지도
 
-> **기준 버전**: Phase 1 확정본 (2026-04-16)
-> **진실의 원천**: [`docs/decisions/011-phase1-scope.md`](docs/decisions/011-phase1-scope.md)
-
-본 저장소의 문서를 **읽는 순서**와 **역할**로 정리한다.
-
----
-
-## 0. 먼저 읽을 것
-
-| 순서 | 문서 | 읽는 이유 |
-|------|------|---------|
-| 1 | [`README.md`](README.md) | 프로젝트 한 장 요약 |
-| 2 | [`docs/decisions/011-phase1-scope.md`](docs/decisions/011-phase1-scope.md) | **모든 판단의 기준** — Phase 1 범위 |
-| 3 | [`docs/references/glossary.md`](docs/references/glossary.md) | 용어 |
+> **기준**: Phase 1 확정본 (2026-04-17)
+> **최상위 기준 문서**: [`docs/what/decisions/011-phase1-scope.md`](docs/what/decisions/011-phase1-scope.md)
+> **SSoT**: [`graph_ir_phase1.yaml`](graph_ir_phase1.yaml)
 
 ---
 
-## 1. 결정 (Decisions)
+## 독해 순서
 
-시간순, 상류에서 하류로.
+### 경로 A — 구현을 바로 시작하려는 경우 (권장)
 
-| # | 파일 | 내용 | 상태 |
-|---|------|------|------|
-| 006 | `docs/decisions/006-db-stack.md` | PostgreSQL + TimescaleDB 선택 | active |
-| 007 | `docs/decisions/007-fsm-design.md` | 개별 FSM (종목군·실행군 Phase 2) | active (축약) |
-| 008 | `docs/decisions/008-data-collection.md` | KIS REST + APScheduler | active |
-| 009 | ~~Cross-Validation~~ | Phase 5+ 연기 | archive/phase3/ |
-| 010 | ~~LLM Storage + Code Generator~~ | Phase 3 연기 | archive/phase3/ |
-| **011** | [`docs/decisions/011-phase1-scope.md`](docs/decisions/011-phase1-scope.md) | **Phase 1 범위 확정** | **stable** |
+1. `docs/how/methodology.md` §1~6 — 방법론·어휘·17 Step 지도 (20분)
+2. `docs/how/seam-map.md` §1~4 — 어휘가 어느 파일에 대응하는지 (10분)
+3. `docs/run/PROGRESS.md` — 현재 Step 확인 (2분)
+4. `docs/run/step-NN.md` — 해당 Step의 §4에 지정된 문서만 정독
+5. 구현 시작
 
----
+### 경로 B — 전체 설계를 먼저 파악하려는 경우
 
-## 2. 아키텍처 (Architecture)
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/architecture/system-overview.md`](docs/architecture/system-overview.md) | 전체 구조 (HR-DAG 개념, 5 Path — Phase 1은 Path 1만) |
-| [`docs/architecture/path1-phase1.md`](docs/architecture/path1-phase1.md) | **Path 1의 Phase 1 상세 설계** (6노드, Pre-Order 7체크) |
-| [`docs/architecture/cli-design.md`](docs/architecture/cli-design.md) | `atlas` CLI 설계 (Telegram 대체) |
-| [`docs/architecture/fsm-design.md`](docs/architecture/fsm-design.md) | TradingFSM 6상태 |
-| [`docs/architecture/db-stack.md`](docs/architecture/db-stack.md) | DB 스택 선정 근거 |
-| [`docs/architecture/screens/screen-architecture.md`](docs/architecture/screens/screen-architecture.md) | **화면 설계 v2** (3카테고리 + 횡단감시, 14화면) |
-| [`docs/architecture/boot-shutdown-phase1.md`](docs/architecture/boot-shutdown-phase1.md) | **Boot/Shutdown 시퀀스** (기동·종료·긴급정지·크래시복구) |
-
----
-
-## 3. 파이프라인 (Pipelines)
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/pipelines/data-collection.md`](docs/pipelines/data-collection.md) | OHLCV 수집 (일봉/분봉) |
-| [`docs/pipelines/backtesting.md`](docs/pipelines/backtesting.md) | 백테스트 실행 구조 |
-
----
-
-## 4. 명세 (Specs)
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/specs/domain-types-phase1.md`](docs/specs/domain-types-phase1.md) | Phase 1 Domain Types 20개 (Pydantic) |
-| [`docs/specs/db-schema-phase1.sql`](docs/specs/db-schema-phase1.sql) | 실행 가능 DDL (6 테이블) |
-| [`docs/specs/config-schema-phase1.md`](docs/specs/config-schema-phase1.md) | **config.yaml 통합 스키마** (11섹션, 브로커 전환 명세) |
-| [`docs/specs/port-signatures-phase1.md`](docs/specs/port-signatures-phase1.md) | **6 Port ABC 통합 시그니처** (28 메서드, PortError 계층) |
-| [`docs/specs/adapter-spec-phase1.md`](docs/specs/adapter-spec-phase1.md) | **12 Adapter 구현 명세** (내부동작·실패처리·전환규칙) |
-| [`docs/specs/error-handling-phase1.md`](docs/specs/error-handling-phase1.md) | **에러 핸들링 통합 매트릭스** (4계층·Severity·SAFE_MODE·CB·KIS코드) |
-| [`docs/specs/project-structure-phase1.md`](docs/specs/project-structure-phase1.md) | **프로젝트 폴더 구조** (Hexagonal 3층·의존방향·구현착수순서) |
-| [`docs/specs/test-strategy-phase1.md`](docs/specs/test-strategy-phase1.md) | **테스트 전략** (Unit/Integration/Acceptance, 합격기준 5 자동화, CI) |
-| [`docs/specs/design-validation-report.md`](docs/specs/design-validation-report.md) | **설계 검증 보고서** (20항목 점검, 3건 수정, 구현 착수 판정) |
-
----
-
-## 5. 청사진 (Blueprints)
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/blueprints/path1-phase1-blueprint.md`](docs/blueprints/path1-phase1-blueprint.md) | Path 1 Phase 1 노드 6개의 L3 확장 청사진 |
-
----
-
-## 6. 참고 (References)
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/references/glossary.md`](docs/references/glossary.md) | 용어집 (Phase 1 용어만) |
-| [`docs/references/decision-log.md`](docs/references/decision-log.md) | 결정 이력 |
-| [`docs/references/kis-api-notes.md`](docs/references/kis-api-notes.md) | KIS API 사용 메모 |
-
----
-
-## 7. Archive
-
-| 파일 | 내용 |
-|------|------|
-| [`docs/archive/README.md`](docs/archive/README.md) | Archive 이동 이유 및 복원 절차 |
-| `docs/archive/phase2plus/` | Phase 2 이후 복원 예정 (Path 3/4/5/6, 고급 Risk 등) |
-| `docs/archive/phase3/` | Phase 3 LLM·지식그래프 관련 |
-| `docs/archive/patches/` | 반영 완료된 델타 문서 (재사용 금지) |
-
----
-
-## 8. SSoT (Single Source of Truth)
-
-| 파일 | 역할 |
-|------|------|
-| [`graph_ir_phase1.yaml`](graph_ir_phase1.yaml) | Phase 1 그래프 구조 (노드·엣지·Port·Adapter 전부) |
-
-Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
-
----
-
-## 수치 요약 (Phase 1)
-
-| 항목 | 수 |
-|------|----|
-| Nodes | **6** |
-| Ports | **6** |
-| Shared Stores | **3** |
-| Edges | **14** |
-| Domain Types | **20** |
-| DB Tables | **6** |
-| Adapters (Primary) | **6** |
-| Adapters (Mock) | **6** |
-| Pre-Order Checks | **7** |
-| FSM States | **6** |
-| CLI Commands | **12** |
-| Screens | **17** |
-| 합격 기준 | **5** |
-
-**이 수치가 활성 문서들 간에 일치하지 않으면 설계 문서가 꼬인 것이다.** — 통폐합 시 최우선 검증 포인트.
-
----
-
-## 폐기된 수치 (Phase 1 이전 문서에 있던 것 — 참고용)
-
-| 항목 | 이전 주장 | Phase 1 실제 | 차이 |
-|------|---------|-----------|------|
-| Nodes | 45 | 6 | -39 |
-| Edges | 95 | 12 | -83 |
-| Ports | 36 | 6 | -30 |
-| DB Tables | 34 | 6 | -28 |
-| Domain Types | 86 | 20 | -66 |
-| Adapters | 68 | 12 | -56 |
-
-**설계 복잡도 1/6로 감소.** Phase 2 이후 단계적으로 복원.
-
----
-
-## 변경 이력
-
-| 날짜 | 변경 |
-|------|------|
-| 2026-04-16 | Phase 1 확정 + 통폐합. 활성 문서 40여 개 → 16개. Phase 2+ 문서 Archive 이동. |
-| 2026-04-17 | screen-architecture.md v1.3 추가 (방향 A~C 완료). INDEX.md에 화면 설계 등재. |
-| 2026-04-17 | 설계작업 2/3/4/5 완료 — config-schema, port-signatures, adapter-spec, boot-shutdown 4개 문서 추가. INDEX 섹션 2/4 갱신. |
-| 2026-04-17 | 설계작업 6 완료 — error-handling-phase1 추가. 에러 처리 규칙 노드·Port·CB·SAFE_MODE·KIS코드 통합. |
-| 2026-04-17 | 설계작업 7 완료 — project-structure-phase1 추가. Hexagonal 3층 폴더 트리 + 의존 방향 + 구현 착수 순서. |
-| 2026-04-17 | **설계작업 8 완료 — test-strategy-phase1 추가. Phase 1 설계 단계 전체 완료.** |
-| 2026-04-17 | **전체 점검 완료** — 20항목 검증, 3건 수정 (SSoT Port methods 동기화, FSM transition 수 오기재, Step1 누락). graph_ir v1.0→v1.0.1. 구현 착수 판정 완료. |
-| 2026-04-17 | **2차 교차 검증** — adapters.md 메서드 커버리지 6건 보완 (v1.0→v1.1). 검증 보고서 v1.1 업데이트. |
-| 2026-04-17 | **3차 교차 검증** — 71항목 자동 검증 스크립트 실행. CSVReplayAdapter unsubscribe 1건 보완 (v1.1→v1.2). |
-| 2026-04-17 | **4차 교차 검증** — 211항목 자동 검증. config.md backtest 섹션 추가 (v1.0→v1.1), struct.md OrderType 추가 (v1.0→v1.1). 실질 불일치 0건. |
-| 2026-04-17 | **screen-arch v2.4** — Header HALT제거·Sidebar잠금, §6 원칙8개, §7 toast범위, §13 Phase구현가이드, scope·project-structure·graph_ir 보완 |
-| 2026-04-17 | **screen-arch v2.3** — §10 구현도구 기준 전면 재작성 (Grafana/HTML/Telegram 분리, 버튼 위치 확정) |
-| 2026-04-17 | **FastAPI 레이어 + 프론트엔드 스택 확정** — graph_ir v1.1.0, screen-arch v2.2, scope Phase 2-0 추가 |
-| 2026-04-17 | **화면 구조 v2 전면 재편** — 4카테고리 17화면 → 3카테고리+횡단감시 14화면. P1+P4 거래 쌍, Strategy+Backtest 통합, 감시 횡단 레이어. |
-
----
-
-## 남은 설계 작업 (구현 설계 진입 전 완료 필요)
-
-| 순서 | 작업 | 상태 |
-|------|------|------|
-| 1 | 방향 C — Operating 화면 레이아웃 | ✅ 완료 (v2에서 거래 카테고리로 재편) |
-| 2 | config.yaml 통합 스키마 | ✅ 완료 |
-| 3 | Port ABC 시그니처 통합 (6개 Port Phase 1) | ✅ 완료 |
-| 4 | Adapter 구현 명세 (Mock/CSV/KIS) | ✅ 완료 |
-| 5 | Boot/Shutdown 시퀀스 Phase 1 축약판 | ✅ 완료 |
-| 6 | 에러 핸들링 통합 매트릭스 | ✅ 완료 |
-| 7 | 프로젝트 폴더 구조 | ✅ 완료 |
-| 8 | 테스트 전략 | ✅ 완료 |
-
-**🎯 Phase 1 설계 완료.** 전체 점검 후 구현 착수.
-
----
-
-## 구현 착수 조건 체크리스트
-
-구현을 시작하기 전에 다음을 확인한다:
-
-- [ ] 활성 문서 수치 체크섬 일치 (Nodes 6 / Ports 6 / Edges 14 / Domain Types 20 / Adapters 12 / CLI 12 / Screens 17 / 합격기준 5)
-- [ ] `graph_ir_phase1.yaml`이 모든 설계 문서의 SSoT 역할 수행
-- [ ] `config-schema`와 `path1-phase1-blueprint`의 config 키 일치
-- [ ] `port-signatures`와 `adapter-spec`의 메서드 시그니처 일치
-- [ ] `project-structure` §10의 구현 착수 8단계 확인
-- [ ] `test-strategy` §5의 합격 기준 5개 자동화 가능 여부 확인
-- [ ] 로컬 개발 환경 준비 (Python 3.11+, Docker, PostgreSQL)
-- [ ] KIS API 인증 정보 준비 (모의투자 계정)
-
----
-
-*End of INDEX*
-## 독해 순서 가이드
-
-### 경로 A — 방법론부터 이해하고 구현 (권장)
-
-처음 저장소를 여는 사람이거나, 구현을 바로 착수하려는 경우.
-
-1. **ADR-012** `docs/decisions/012-implementation-methodology.md` §1~6 (20분)
-   - 어휘 10개, 세 원칙, 17 Step 전체 지도
-2. **Seam Map** `docs/references/seam-map.md` §1~4 (10분)
-   - 어휘가 저장소의 어느 파일에 대응하는지
-3. **PROGRESS.md** `docs/runbooks/PROGRESS.md` (2분)
-   - 현재 어느 Step에 있는지 확인
-4. **해당 Step Runbook** `docs/runbooks/step-NN.md`
-   - §4 참조 문서에 지정된 기존 설계 문서만 정독
-5. **구현 시작**
-
-### 경로 B — 전체 설계를 먼저 훑고 싶은 경우
-
-시스템 전체 그림을 먼저 파악한 뒤 구현에 들어가고 싶은 경우.
-
-1. **ADR-011** `docs/decisions/011-phase1-scope.md` — Phase 1 범위와 합격기준
-2. **path1-phase1.md** `docs/architecture/path1-phase1.md` — 6노드 상세 설계
-3. **graph_ir_phase1.yaml** — 노드/엣지 정식 정의
-4. **ports-phase1.md** `docs/specs/ports-phase1.md` — 6 Port 시그니처 SSoT
-5. **domain-types-phase1.md** `docs/specs/domain-types-phase1.md` — 20 타입
-6. **ADR-012** `docs/decisions/012-implementation-methodology.md` — 방법론
+1. `docs/what/decisions/011-phase1-scope.md` — Phase 1 범위·합격기준
+2. `docs/what/architecture/path1-phase1.md` — 6노드 상세 설계
+3. `graph_ir_phase1.yaml` — 노드/엣지 정식 정의
+4. `docs/what/specs/port-signatures-phase1.md` — 6 Port 시그니처
+5. `docs/what/specs/domain-types-phase1.md` — 20 타입
+6. `docs/how/methodology.md` — 방법론
 7. 이후 경로 A의 3~5 반복
 
-### 문서 3층 구조
+---
+
+## 문서 3층 구조
 
 ```
-What 층 (기존 설계)  — docs/decisions/011, docs/architecture, docs/specs
-  └─ 시스템이 무엇인가. SSoT. 5차 검증 188항목 정합성 보존.
-
-How 층 (방법론)      — docs/decisions/012, docs/references/seam-*
-  └─ 어떻게 증분하는가. Tracer Bullet + Walking Skeleton + Stub Replacement.
-
-Run 층 (Runbook)     — docs/runbooks/
-  └─ 지금 무엇을 하는가. 매일 한 Step. 기존 설계를 포인터로 참조.
+What 층 (docs/what/)  — 시스템이 무엇인가. SSoT. 188항목 정합성 보존.
+How 층  (docs/how/)   — 어떻게 증분하는가. Tracer Bullet + Walking Skeleton.
+Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 ```
-
-## Runbook 시스템
-
-| 파일 | 역할 |
-|------|------|
-| `docs/runbooks/README.md` | Runbook 사용법, 매일 반복 루프, 규칙 |
-| `docs/runbooks/TEMPLATE.md` | 7섹션 표준 템플릿 |
-| `docs/runbooks/PROGRESS.md` | 17 Step 진행 상태 + Daily Log |
-| `docs/runbooks/step-00.md` ~ `step-11b.md` | 17개 Step 실행 절차서 |
-
-## 방법론 문서
-
-| 파일 | 역할 |
-|------|------|
-| `docs/decisions/012-implementation-methodology.md` | ADR-012: 방법론 원칙, 어휘, 17 Step, 안티패턴 |
-| `docs/references/seam-map.md` | 어휘 → 저장소 실제 위치 매핑 |
-| `docs/references/seam-classification.md` | Port별 Seam 분류 및 교체 난이도 분석 |
 
 ---
+
+## What 층 — `docs/what/`
+
+### 결정 (decisions/) — 왜 이렇게 결정했는가
+
+| # | 파일 | 내용 |
+|---|------|------|
+| 006 | `006-db-stack.md` | PostgreSQL + TimescaleDB 스택 선정 |
+| 007 | `007-fsm-design.md` | 이중 레벨 FSM 설계 (종목군 + 개별 종목) |
+| 008 | `008-data-collection.md` | 데이터 수집 원칙 및 파이프라인 구조 |
+| **011** | `011-phase1-scope.md` | **Phase 1 범위·합격기준·구현순서 확정** |
+
+### 아키텍처 (architecture/) — 어떻게 생겼는가
+
+| 파일 | 내용 |
+|------|------|
+| `system-overview.md` | ATLAS 전체 아키텍처 개요 (5 Path, HR-DAG) |
+| `path1-phase1.md` | Phase 1 거래 실행 경로 상세 설계 (6노드·14엣지) |
+| `fsm-design.md` | 거래 상태 머신 설계 (종목군 5상태 + 개별 13상태) |
+| `cli-design.md` | atlas CLI 명령어 설계 (12명령·IPC·보안) |
+| `db-stack.md` | 데이터 저장소 구조 (PostgreSQL·TimescaleDB·Redis) |
+| `boot-shutdown-phase1.md` | 시스템 기동·종료·긴급정지·크래시복구 시퀀스 |
+| `path1-node-blueprint.md` | Phase 1 6노드 내부 상세 (L3 Blueprint) |
+| `screens/screen-architecture.md` | 화면 아키텍처 (3카테고리·14화면·횡단감시) |
+
+### 명세 (specs/) — 정확히 무엇인가
+
+| 파일 | 내용 |
+|------|------|
+| `port-signatures-phase1.md` | Phase 1 Port 인터페이스 시그니처 (6 Port·28 메서드) |
+| `adapter-spec-phase1.md` | Phase 1 Adapter 구현 명세 (12 Adapter·실패처리·전환규칙) |
+| `domain-types-phase1.md` | Phase 1 도메인 타입 정의 (20개·Pydantic v2) |
+| `config-schema-phase1.md` | Phase 1 설정 파일 스키마 (config.yaml·11섹션·브로커전환) |
+| `error-handling-phase1.md` | Phase 1 에러 핸들링 매트릭스 (4계층·CB·SAFE_MODE·KIS코드) |
+| `project-structure-phase1.md` | Phase 1 프로젝트 폴더 구조 (Hexagonal 3층·의존방향) |
+| `test-strategy-phase1.md` | Phase 1 테스트 전략 (피라미드·합격기준 자동화·CI) |
+| `db-schema-phase1.sql` | 실행 가능 DDL (6테이블) |
+| `design-validation-report.md` | Phase 1 설계 검증 보고서 (5차 교차검증·188항목) |
+
+### 파이프라인 (pipelines/) — 데이터가 어떻게 흐르는가
+
+| 파일 | 내용 |
+|------|------|
+| `data-collection.md` | 시세 데이터 수집 파이프라인 (정형·비정형·CSV) |
+| `backtesting.md` | 백테스트 파이프라인 (이중 엔진·성과지표·전환기준) |
+
+### 참고 (references/) — 보조 자료
+
+| 파일 | 내용 |
+|------|------|
+| `glossary.md` | ATLAS 용어 사전 |
+| `decision-log.md` | 설계 결정 이력 (시간순) |
+| `kis-api-notes.md` | KIS Open API 사용 메모 (환경구분·인증·주의사항) |
+
+---
+
+## How 층 — `docs/how/`
+
+| 파일 | 내용 |
+|------|------|
+| `methodology.md` | 구현 방법론 (Tracer Bullet·Walking Skeleton·17 Step) |
+| `seam-map.md` | Seam Map: 방법론 어휘 → 저장소 파일·코드 위치 매핑 |
+| `seam-classification.md` | Port별 교체 난이도 분석 (Seam 4유형·6 Port 분류) |
+
+---
+
+## Run 층 — `docs/run/`
+
+| 파일 | 내용 |
+|------|------|
+| `README.md` | Runbook 사용법, 매일 반복 루프, 규칙 |
+| `TEMPLATE.md` | 7섹션 표준 템플릿 |
+| `PROGRESS.md` | 17 Step 진행 상태 + Daily Log |
+| `step-00.md` ~ `step-11b.md` | 17개 Step 실행 절차서 |
+
+---
+
+## SSoT
+
+| 파일 | 역할 |
+|------|------|
+| `graph_ir_phase1.yaml` | Phase 1 그래프 구조 (노드·엣지·Port·Adapter 전부) |
+
+---
+
+## Archive — `docs/archive/`
+
+| 디렉토리 | 내용 |
+|---------|------|
+| `phase2plus/` | Phase 2 이후 복원 예정 (Path 3~6, 고급 Risk 등) |
+| `phase3/` | Phase 3 LLM·지식그래프 관련 |
+| `patches/` | 반영 완료된 델타 문서 (재사용 금지) |

@@ -8,7 +8,7 @@
 
 > **Phase 1 (설계 통폐합 완료, 구현 착수 전)**
 > **날짜**: 2026-04-16
-> **범위 문서**: [`docs/decisions/011-phase1-scope.md`](docs/decisions/011-phase1-scope.md)
+> **범위 문서**: [`docs/what/decisions/011-phase1-scope.md`](docs/what/decisions/011-phase1-scope.md)
 
 ---
 
@@ -78,7 +78,7 @@ Phase 1 합격 기준 5개를 모두 충족하면 Phase 2로 진입한다.
 docker compose up -d postgres
 
 # 2. 스키마 적용
-psql -U atlas -d atlas -f docs/specs/db-schema-phase1.sql
+psql -U atlas -d atlas -f docs/what/specs/db-schema-phase1.sql
 
 # 3. 설정 파일 편집
 cp config/config.example.yaml config/config.yaml
@@ -96,23 +96,23 @@ atlas start
 ## 문서 지도
 
 **먼저 읽기**:
-1. [`docs/decisions/011-phase1-scope.md`](docs/decisions/011-phase1-scope.md) — **Phase 1 범위 (모든 문서의 기준)**
+1. [`docs/what/decisions/011-phase1-scope.md`](docs/what/decisions/011-phase1-scope.md) — **Phase 1 범위 (모든 문서의 기준)**
 2. [`INDEX.md`](INDEX.md) — 전체 문서 지도
-3. [`docs/architecture/system-overview.md`](docs/architecture/system-overview.md) — 시스템 개요
+3. [`docs/what/architecture/system-overview.md`](docs/what/architecture/system-overview.md) — 시스템 개요
 
 **설계 상세**:
-- [`docs/architecture/path1-phase1.md`](docs/architecture/path1-phase1.md) — Path 1 6노드 상세
-- [`docs/architecture/cli-design.md`](docs/architecture/cli-design.md) — `atlas` CLI 설계
-- [`docs/architecture/fsm-design.md`](docs/architecture/fsm-design.md) — TradingFSM 설계
-- [`docs/architecture/db-stack.md`](docs/architecture/db-stack.md) — DB 선정 이유
+- [`docs/what/architecture/path1-phase1.md`](docs/what/architecture/path1-phase1.md) — Path 1 6노드 상세
+- [`docs/what/architecture/cli-design.md`](docs/what/architecture/cli-design.md) — `atlas` CLI 설계
+- [`docs/what/architecture/fsm-design.md`](docs/what/architecture/fsm-design.md) — TradingFSM 설계
+- [`docs/what/architecture/db-stack.md`](docs/what/architecture/db-stack.md) — DB 선정 이유
 
 **명세**:
-- [`docs/specs/domain-types-phase1.md`](docs/specs/domain-types-phase1.md) — Domain Types 20개
-- [`docs/specs/db-schema-phase1.sql`](docs/specs/db-schema-phase1.sql) — 실행 가능 DDL
+- [`docs/what/specs/domain-types-phase1.md`](docs/what/specs/domain-types-phase1.md) — Domain Types 20개
+- [`docs/what/specs/db-schema-phase1.sql`](docs/what/specs/db-schema-phase1.sql) — 실행 가능 DDL
 
 **파이프라인**:
-- [`docs/pipelines/data-collection.md`](docs/pipelines/data-collection.md)
-- [`docs/pipelines/backtesting.md`](docs/pipelines/backtesting.md)
+- [`docs/what/pipelines/data-collection.md`](docs/what/pipelines/data-collection.md)
+- [`docs/what/pipelines/backtesting.md`](docs/what/pipelines/backtesting.md)
 
 **Archive (Phase 2+)**:
 - [`docs/archive/README.md`](docs/archive/README.md) — 연기된 문서들의 설명
