@@ -320,3 +320,50 @@ vi_detection:
 
 market_rules_file: "config/market_rules.yaml"  # str | 수수료·세금 외부 파일
 ```
+
+---
+
+## synthetic 섹션 (가상거래소 — synthetic-exchange-phase1.md 연동)
+
+> **출처**: `docs/what/specs/synthetic-exchange-phase1.md` §10
+> **사용 조건**: `broker.mode: synthetic` + `market_data.mode: synthetic` 쌍으로 사용
+
+```yaml
+synthetic:
+  seed: 42                           # int | 재현성 시드 (같은 시드 = 같은 시계열)
+  simulation_days: 504               # int | 시뮬레이션 영업일 수 (2년)
+  initial_cash: 100000000            # int | 초기 자본 (원, 1억)
+
+  price_model:
+    type: "gbm_realistic"            # str | gbm | gbm_realistic | regime_switching
+    drift_annual: 0.08               # float | 연간 기대수익률 (8%)
+    vol_annual: 0.25                 # float | 연간 변동성 (25%)
+    jump_intensity: 0.3              # float | 일 평균 점프 횟수 (Level 2)
+    jump_std: 0.03                   # float | 점프 크기 표준편차
+
+  initial_prices:                    # 종목별 시작가 (watchlist와 일치해야 함)
+    "005930": 72000                  # 삼성전자
+    "000660": 180000                 # SK하이닉스
+    "373220": 380000                 # LG에너지솔루션
+    "207940": 750000                 # 삼성바이오로직스
+    "005380": 210000                 # 현대차
+
+  market_rules:
+    tick_size_table: "kospi"         # str | kospi | kosdaq
+    limit_pct: 0.30                  # float | 상하한가 비율 (30%)
+    vi_threshold_pct: 0.10           # float | VI 발동 기준 (10%)
+    vi_cooldown_seconds: 120         # int | VI 후 신호 폐기 기간
+    trading_hours_start: "09:00"     # str | 장 시작 (KST)
+    trading_hours_end: "15:20"       # str | 장 종료 (KST)
+
+  scenarios: []                      # list | 이벤트 주입 (§8 synthetic-exchange 참조)
+  # 예시:
+  # - type: "flash_crash"
+  #   symbol: "005930"
+  #   at_minute: 180
+  #   magnitude: -0.08
+
+  monte_carlo:
+    n_runs: 1000                     # int | Monte Carlo 시뮬 횟수
+    acceptance_sharpe_median: 0.8    # float | 합격기준 1-A: Sharpe 중앙값
+```

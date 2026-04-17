@@ -27,15 +27,17 @@
 | 1 | MarketDataPort | **KISWebSocketAdapter** | ws | KIS WS API, `websockets` |
 | 2 | MarketDataPort | **KISRestAdapter** | poll | KIS REST API, `httpx` |
 | 3 | MarketDataPort | **CSVReplayAdapter** | csv_replay | 파일시스템, `pandas` |
-| 4 | BrokerPort | **MockBrokerAdapter** | mock | 없음 (in-process) |
-| 5 | BrokerPort | **KISPaperBrokerAdapter** | paper | KIS REST API, `httpx` |
-| 6 | StoragePort | **PostgresStorageAdapter** | primary | PostgreSQL, `asyncpg` |
-| 7 | StoragePort | **InMemoryStorageAdapter** | test | 없음 |
-| 8 | ClockPort | **WallClockAdapter** | live/paper | OS 시계 |
-| 9 | ClockPort | **HistoricalClockAdapter** | backtest | 없음 (내부 시뮬 시계) |
-| 10 | StrategyRuntimePort | **FileSystemStrategyLoader** | primary | 파일시스템, `importlib` |
-| 11 | AuditPort | **PostgresAuditAdapter** | primary | PostgreSQL, `asyncpg` |
-| 12 | AuditPort | **StdoutAuditAdapter** | test | 없음 |
+| 4 | MarketDataPort | **SyntheticMarketAdapter** | synthetic | 없음 (in-process, ExchangeEngine) |
+| 5 | BrokerPort | **MockBrokerAdapter** | mock | 없음 (in-process) |
+| 6 | BrokerPort | **KISPaperBrokerAdapter** | paper | KIS REST API, `httpx` |
+| 7 | BrokerPort | **SyntheticBrokerAdapter** | synthetic | 없음 (in-process, ExchangeEngine) |
+| 8 | StoragePort | **PostgresStorageAdapter** | primary | PostgreSQL, `asyncpg` |
+| 9 | StoragePort | **InMemoryStorageAdapter** | test | 없음 |
+| 10 | ClockPort | **WallClockAdapter** | live/paper | OS 시계 |
+| 11 | ClockPort | **HistoricalClockAdapter** | backtest | 없음 (내부 시뮬 시계) |
+| 12 | StrategyRuntimePort | **FileSystemStrategyLoader** | primary | 파일시스템, `importlib` |
+| 13 | AuditPort | **PostgresAuditAdapter** | primary | PostgreSQL, `asyncpg` |
+| 14 | AuditPort | **StdoutAuditAdapter** | test | 없음 |
 
 ---
 
@@ -48,6 +50,7 @@
 | mock | csv_replay | Mock + CSVReplay + InMemory + HistoricalClock + StdoutAudit |
 | mock | ws | Mock + KISWebSocket + Postgres + WallClock + PostgresAudit |
 | paper | ws | KISPaper + KISWebSocket + Postgres + WallClock + PostgresAudit |
+| synthetic | synthetic | Synthetic + SyntheticBroker + InMemory + HistoricalClock + StdoutAudit |
 
 > **Phase 1 기본 경로 2개**
 > - **백테스트**: `mock + csv_replay` (InMemory 스토리지, HistoricalClock)
@@ -55,7 +58,7 @@
 
 ---
 
-## 4. MarketDataPort 어댑터 (3개)
+## 4. MarketDataPort 어댑터 (4개)
 
 ### 4.1 KISWebSocketAdapter
 
@@ -168,7 +171,42 @@ from datetime import datetime
 
 ---
 
-## 5. BrokerPort 어댑터 (2개)
+### 4.4 SyntheticMarketAdapter
+
+**역할**: 가상거래소(ExchangeEngine) 기반 시세 생성. 실제 데이터 없이 파이프라인 전체 검증.
+상세 설계: `docs/what/specs/synthetic-exchange-phase1.md`
+
+**핵심 동작**
+- `subscribe`: ExchangeEngine 초기화. 종목별 GBM 시작가 설정.
+- `stream()`: HistoricalClockAdapter가 tick 단위로 시간을 진행할 때마다 ExchangeEngine.advance_to(ts) 호출 → Quote 생성하여 yield.
+- `get_current_price`: 현재 SymbolState.last_price 반환.
+- `get_historical`: 빈 리스트 반환 (가상거래소는 과거 없음).
+
+**의존성**
+```python
+import numpy as np
+from atlas.exchange.engine import ExchangeEngine   # 내부 모듈
+```
+
+**config 사용 키**
+- `synthetic.seed`
+- `synthetic.price_model.*`
+- `synthetic.initial_prices`
+- `synthetic.market_rules.*`
+- `synthetic.scenarios`
+
+**실패 처리**
+| 상황 | 동작 |
+|------|------|
+| 미구독 종목 시세 요청 | `DataError` raise |
+| ExchangeEngine 미초기화 | `ConnectionError` raise |
+
+**주의**: SyntheticBrokerAdapter와 **동일한 ExchangeEngine 인스턴스를 공유**해야 한다.
+반드시 쌍으로 사용 (`market_data.mode: synthetic` + `broker.mode: synthetic`).
+
+---
+
+## 5. BrokerPort 어댑터 (3개)
 
 ### 5.1 MockBrokerAdapter
 
@@ -239,6 +277,48 @@ import httpx
 | 중복 `order_uuid` | 내부 캐시에서 기존 결과 반환 |
 
 **주의**: KIS API는 계좌 구분 코드(`CANO`, `ACNT_PRDT_CD`)가 필수. `account_no` 형식 `"50123456-01"`에서 `-` 기준으로 분리.
+
+---
+
+### 5.3 SyntheticBrokerAdapter
+
+**역할**: 가상거래소(ExchangeEngine) 기반 주문 체결. 호가창 매칭, 수수료·세금·슬리피지 반영.
+상세 설계: `docs/what/specs/synthetic-exchange-phase1.md`
+
+**핵심 동작**
+- `submit`: ExchangeEngine.submit_order() 호출. 호가창 등록 후 즉시 매칭 시도. 체결 시 잔고·포지션 갱신.
+- `cancel`: OrderBook에서 해당 UUID 주문 취소.
+- `get_order_status`: 내부 fills 캐시 조회.
+- `get_account_balance`: 현재 _cash 반환.
+
+**의존성**
+```python
+from atlas.exchange.engine import ExchangeEngine   # 내부 모듈 (SyntheticMarketAdapter와 공유)
+```
+
+**config 사용 키**
+- `synthetic.initial_cash` (기본 100_000_000)
+- `backtest.slippage_ticks` (기본 1)
+- `backtest.fee_rate` (기본 0.00015)
+- `backtest.transaction_tax_rate` (기본 0.0018)
+- `backtest.special_tax_rate` (기본 0.0015)
+
+**상태**
+- `_cash: Money` — 현재 잔고
+- `_positions: dict[Symbol, Quantity]` — 보유 수량
+- `_fills: dict[UUID, OrderResult]` — 멱등성 보장용 캐시
+
+**실패 처리**
+| 상황 | 동작 |
+|------|------|
+| 잔고 부족 | `BrokerRejectError(code='INSUFFICIENT_CASH')` raise |
+| 상하한가 위반 | `BrokerRejectError(code='PRICE_LIMIT')` raise |
+| VI 중 주문 | `BrokerRejectError(code='VI_TRIGGERED')` raise |
+| 동일 UUID 재제출 | 기존 OrderResult 반환 (멱등성) |
+| 10초 타임아웃 | `OrderResult(status=EXPIRED)` 반환 |
+
+**주의**: SyntheticMarketAdapter와 **동일한 ExchangeEngine 인스턴스를 공유**해야 한다.
+AdapterFactory에서 ExchangeEngine을 먼저 생성한 뒤 두 Adapter에 주입한다.
 
 ---
 

@@ -4,6 +4,10 @@
 
 inline stub (Step 0)를 CSVReplayAdapter로 교체. 실제 KOSPI 봉(CSV)이 파이프라인에 흐른다.
 
+> **대안 경로**: CSV 데이터가 없는 경우 `SyntheticMarketAdapter + SyntheticBrokerAdapter`로도 이 Step을 완주할 수 있다.
+> `config.yaml`에서 `market_data.mode: synthetic` + `broker.mode: synthetic` 으로 전환하면 된다.
+> 상세: `docs/what/specs/synthetic-exchange-phase1.md`
+
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 1

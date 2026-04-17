@@ -35,11 +35,13 @@ ports:
       primary: KISWebSocketAdapter
       fallback: KISRestAdapter
       mock: CSVReplayAdapter
+      synthetic: SyntheticMarketAdapter  # synthetic-exchange-spec
 
   BrokerPort:
     methods: [submit, cancel, get_order_status, get_account_balance]
     adapters:
       mock: MockBrokerAdapter
+      synthetic: SyntheticBrokerAdapter  # synthetic-exchange-spec
       kis_paper: KISPaperBrokerAdapter
       kis_live: KISLiveBrokerAdapter    # Phase 2 진입까지 사용 금지
 
@@ -334,7 +336,7 @@ expected_counts:
   edges: 14            # cli_halt 포함
   domain_types: 20
   db_tables: 6
-  adapters_primary: 6
+  adapters_primary: 8  # +2: SyntheticMarketAdapter, SyntheticBrokerAdapter (synthetic-exchange-phase1)
   pre_order_checks: 8
   fsm_states: 6
   fsm_transitions: 12
