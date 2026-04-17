@@ -81,7 +81,7 @@
 | StrategyEngine | ma_crossover golden cross → BUY, dead cross → SELL, cooldown 억제 |
 | RiskGuard | 7체크 개별 경계값, 여러 체크 동시 실패 시 첫 번째만 audit |
 | OrderExecutor | 멱등성 (동일 UUID 재제출), CB trip/recovery |
-| TradingFSM | 23 transition 전부, 불가능 전이 시 warn, persist 타이밍 |
+| TradingFSM | 12 transition 전부, 불가능 전이 시 warn, persist 타이밍 |
 
 #### core/risk/
 
@@ -402,6 +402,7 @@ lint:
 
 | 구현 Step (project-structure §10) | 작성해야 할 테스트 |
 |------|----------------|
+| Step 1: 저장소 + 인프라 | (테스트 없음, 의존성 설치만) |
 | Step 2: Core/Domain | unit/core/domain/* (동시 작성) |
 | Step 3: Ports | unit/ports/exceptions 만 |
 | Step 4: Mock Adapters | unit/adapters/ (mock 계열) |

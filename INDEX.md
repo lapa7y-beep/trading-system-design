@@ -67,6 +67,7 @@
 | [`docs/specs/error-handling-phase1.md`](docs/specs/error-handling-phase1.md) | **에러 핸들링 통합 매트릭스** (4계층·Severity·SAFE_MODE·CB·KIS코드) |
 | [`docs/specs/project-structure-phase1.md`](docs/specs/project-structure-phase1.md) | **프로젝트 폴더 구조** (Hexagonal 3층·의존방향·구현착수순서) |
 | [`docs/specs/test-strategy-phase1.md`](docs/specs/test-strategy-phase1.md) | **테스트 전략** (Unit/Integration/Acceptance, 합격기준 5 자동화, CI) |
+| [`docs/specs/design-validation-report.md`](docs/specs/design-validation-report.md) | **설계 검증 보고서** (20항목 점검, 3건 수정, 구현 착수 판정) |
 
 ---
 
@@ -156,6 +157,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-17 | 설계작업 6 완료 — error-handling-phase1 추가. 에러 처리 규칙 노드·Port·CB·SAFE_MODE·KIS코드 통합. |
 | 2026-04-17 | 설계작업 7 완료 — project-structure-phase1 추가. Hexagonal 3층 폴더 트리 + 의존 방향 + 구현 착수 순서. |
 | 2026-04-17 | **설계작업 8 완료 — test-strategy-phase1 추가. Phase 1 설계 단계 전체 완료.** |
+| 2026-04-17 | **전체 점검 완료** — 20항목 검증, 3건 수정 (SSoT Port methods 동기화, FSM transition 수 오기재, Step1 누락). graph_ir v1.0→v1.0.1. 구현 착수 판정 완료. |
 
 ---
 

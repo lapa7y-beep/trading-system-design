@@ -12,9 +12,9 @@
 # - 현재 Phase 1은 "사람이 읽는 체크리스트 + 수동 검증 기준"
 # ============================================================================
 
-version: "1.0"
+version: "1.0.1"
 phase: 1
-updated: "2026-04-16"
+updated: "2026-04-17"
 
 # ---------------------------------------------------------------------------
 # 메타
@@ -30,7 +30,7 @@ meta:
 # ---------------------------------------------------------------------------
 ports:
   MarketDataPort:
-    methods: [subscribe, unsubscribe, get_current_price, get_historical]
+    methods: [subscribe, unsubscribe, stream, get_current_price, get_historical]
     adapters:
       primary: KISWebSocketAdapter
       fallback: KISRestAdapter
@@ -44,13 +44,13 @@ ports:
       kis_live: KISLiveBrokerAdapter    # Phase 2 진입까지 사용 금지
 
   StoragePort:
-    methods: [save_ohlcv, save_trade, update_position, load_position, save_pnl]
+    methods: [save_ohlcv, load_ohlcv, save_trade, update_position, load_position, load_all_positions, save_pnl, load_portfolio_snapshot]
     adapters:
       primary: PostgresStorageAdapter
       mock: InMemoryStorageAdapter     # 테스트용
 
   ClockPort:
-    methods: [now, sleep, trading_hours_check]
+    methods: [now, sleep, is_trading_hours, trading_hours_check]
     adapters:
       live: WallClockAdapter
       backtest: HistoricalClockAdapter
