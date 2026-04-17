@@ -156,6 +156,15 @@ cli:
   status_refresh_seconds: 5       # int ≥ 1 | atlas status 폴링 주기
 
 # ==========================================================================
+# 12. 백테스트 (MockBrokerAdapter 전용)
+# ==========================================================================
+backtest:
+  initial_cash: 100000000         # int | 초기 자금 (KRW, 기본 1억)
+  slippage_bps: 5                 # int ≥ 0 | 슬리피지 (basis points, 기본 5 = 0.05%)
+  fee_rate: 0.00015               # float ≥ 0 | 매수·매도 수수료율 (기본 0.015%)
+  tax_rate: 0.0023                # float ≥ 0 | 증권거래세 (매도 시, 기본 0.23%)
+
+# ==========================================================================
 # [Phase 2 예약 — Phase 1에서 설정해도 무시됨]
 # ==========================================================================
 # telegram:
@@ -253,7 +262,8 @@ ATLAS_DATABASE_URL=postgresql://atlas:secret@localhost:5432/atlas
 | 날짜 | 버전 | 변경 |
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. 6노드 설정 키 통합. |
+| 2026-04-17 | v1.1 | 4차 검증: backtest 섹션 추가 (slippage_bps, fee_rate, tax_rate, initial_cash). |
 
 ---
 
-*Phase 1 config.yaml 통합 스키마 — 11개 섹션, MockBroker↔KISPaper 전환 명세 포함*
+*Phase 1 config.yaml 통합 스키마 — 12개 섹션, MockBroker↔KISPaper 전환 명세 포함*

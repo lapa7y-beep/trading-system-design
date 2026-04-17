@@ -60,7 +60,7 @@ atlas/                                    ← 저장소 루트 (구현 시작 �
 │   │   ├── domain/                       ← Domain Types 20개
 │   │   │   ├── __init__.py
 │   │   │   ├── primitives.py             ← Symbol, Price, Quantity, Money, CorrelationId
-│   │   │   ├── enums.py                  ← OrderSide, OrderStatus, FSMState, BrokerMode
+│   │   │   ├── enums.py                  ← OrderSide, OrderType, OrderStatus, FSMState, BrokerMode
 │   │   │   ├── market.py                 ← Quote, OHLCV, IndicatorBundle
 │   │   │   ├── signal.py                 ← SignalOutput
 │   │   │   ├── order.py                  ← OrderRequest, OrderResult, TradeRecord
@@ -445,6 +445,7 @@ Step 8: Acceptance 테스트 (1일)
 | 날짜 | 버전 | 변경 |
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. Hexagonal 3층 + CLI/Infra/Tests 전체 트리 + 의존 방향 규칙 + 구현 착수 순서. |
+| 2026-04-17 | v1.1 | 4차 검증: enums.py 설명에 OrderType 추가 (Domain Types 20개 완전 커버). |
 
 ---
 

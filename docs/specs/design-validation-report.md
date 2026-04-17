@@ -213,3 +213,28 @@ done
 **71개 항목 중 70개 통과, 1개 오탐(문서 정상). 실질 불일치 0건.**
 
 *Design Validation Report v1.2 — 2026-04-17*
+
+---
+
+## 10. 4차 교차 검증 (2026-04-17)
+
+20개 카테고리, 211개 항목 자동 검증. 결과: 208 통과 / 3 실패.
+
+### 실패 분석 및 조치
+
+| # | 항목 | 원인 | 조치 |
+|---|------|------|------|
+| 1 | struct.md에 `OrderType` 미언급 | enums.py 설명에서 5개 Enum 중 `OrderType`만 빠짐 | **struct.md v1.1**: 추가 완료 |
+| 2 | blueprint edge names 6개만 감지 | 정규식 한계 (DataPipe 등 role명이 혼재) | **스크립트 오탐** — 문서 정상 (실제 10개+) |
+| 3 | config.md에 `slippage_bps` 없음 | adapters.md가 `backtest.slippage_bps` 참조하지만 config.md에 backtest 섹션 부재 | **config.md v1.1**: backtest 섹션 신규 추가 |
+
+### 수정 파일
+
+- `docs/specs/config-schema-phase1.md` v1.0 → v1.1: backtest 섹션 추가 (initial_cash, slippage_bps, fee_rate, tax_rate)
+- `docs/specs/project-structure-phase1.md` v1.0 → v1.1: enums.py 설명에 OrderType 추가
+
+### 최종 결과
+
+**211개 항목 중 209개 통과, 1개 오탐(문서 정상), 2건 수정 완료. 실질 불일치 0건.**
+
+*Design Validation Report v1.3 — 2026-04-17*
