@@ -159,3 +159,34 @@ done
 ---
 
 *Design Validation Report v1.0 — 2026-04-17*
+
+---
+
+## 8. 2차 교차 검증 (2026-04-17)
+
+1차 점검 완료 후, 저장소 최신 상태 기준으로 11개 항목 재검증 수행.
+
+### 신규 발견 → 수정 완료
+
+**adapters.md 메서드 커버리지 부족 6건** — Port ABC 메서드에 대한 Adapter 설명이 축약되어 있던 것을 보완.
+
+| Adapter | 추가된 메서드 설명 |
+|---------|----------------|
+| MockBrokerAdapter | `cancel`, `get_order_status`, `get_account_balance` |
+| KISWebSocketAdapter | `unsubscribe`, `get_current_price`, `get_historical` (REST 위임 명시) |
+| KISRestAdapter | `unsubscribe`, `get_current_price` |
+| PostgresStorageAdapter | `load_ohlcv`, `load_position`, `load_all_positions` |
+| InMemoryStorageAdapter | 전체 8메서드 커버리지 명시 |
+| HistoricalClockAdapter | `now`, `trading_hours_check` |
+
+**수정 파일**: `docs/specs/adapter-spec-phase1.md` (v1.0 → v1.1)
+
+### 재확인 완료 항목
+
+- SSoT Port methods: 1차 수정 정상 반영 ✅
+- test.md FSM transition: "12" 수정 반영 ✅
+- INDEX 등재 24파일: 전부 존재 ✅
+- config 키 일관성: 완벽 ✅
+- Domain Types ↔ DB: 의도적 차이만 ✅
+
+*Design Validation Report v1.1 — 2026-04-17*

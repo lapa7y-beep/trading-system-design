@@ -63,7 +63,10 @@
 
 **핵심 동작**
 - 최초 `subscribe` 호출 시 KIS 인증 → WS 연결 → H0STCNT0 (실시간 체결가) 구독
+- `unsubscribe`: WS 구독 해제 메시지 전송 → `_subscribed_symbols`에서 제거. 남은 구독 0이면 WS 연결 close.
 - `stream()` 은 내부 asyncio.Queue에서 Quote를 pop하여 yield
+- `get_current_price`: `_queue`의 최신 Quote를 반환 (WS 미연결 시 `ConnectionError`)
+- `get_historical`: WS에서는 미지원. KISRestAdapter에 위임 (Adapter Factory가 두 어댑터를 조합)
 - WS 수신 루프는 별도 task로 구동
 
 **의존성**
@@ -102,7 +105,9 @@ from tenacity import retry, ...      # 재시도
 
 **핵심 동작**
 - `subscribe` 시 내부 polling task 시작. `poll_interval_seconds`마다 `/uapi/domestic-stock/v1/quotations/inquire-price` 호출
+- `unsubscribe`: polling task 취소 → `_subscribed_symbols`에서 제거
 - `stream()` 은 WebSocketAdapter와 동일한 인터페이스 (asyncio.Queue)
+- `get_current_price`: 마지막 polling 결과의 Quote 반환 (polling 미시작 시 즉시 1회 REST 호출)
 - `get_historical` 은 `/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice` 호출
 
 **의존성**
@@ -170,6 +175,9 @@ from datetime import datetime
 
 **핵심 동작**
 - `submit` 호출 시 즉시 `OrderResult(status=FILLED)` 반환 (시장가) 또는 가격 조건 검사 후 체결 (지정가)
+- `cancel`: `_orders` 딕셔너리에서 해당 UUID 조회 → 이미 FILLED면 `BrokerRejectError`, 아니면 CANCELLED 반환
+- `get_order_status`: `_orders[order_uuid]` 조회 → 없으면 `DataError`
+- `get_account_balance`: `_cash` 반환
 - 체결가는 현재 시세(ClockPort.now 기준 CSV 재생 시점의 마지막 Quote) 기반
 - 슬리피지: `price * (1 ± slippage_bps/10000)`
 - 수수료: 매수=0.015%, 매도=0.015% + 거래세 0.23%
@@ -243,6 +251,9 @@ import httpx
 - `__init__`에서 `asyncpg.create_pool(database.url, min_size=1, max_size=pool_size)`
 - 모든 쿼리는 `async with pool.acquire() as conn:` 패턴
 - `save_ohlcv`: `INSERT ... ON CONFLICT (symbol, ts) DO UPDATE` (upsert)
+- `load_ohlcv`: `SELECT ... WHERE symbol=$1 AND interval=$2 AND ts BETWEEN $3 AND $4 ORDER BY ts ASC`
+- `load_position`: `SELECT ... FROM positions WHERE symbol = $1` (없으면 None)
+- `load_all_positions`: `SELECT ... FROM positions` (전체 오픈 포지션)
 - `update_position`: 트랜잭션 내에서 `UPDATE positions ... WHERE symbol = $1` (없으면 INSERT)
 - `load_portfolio_snapshot`: 단일 쿼리로 positions + daily_pnl + cash 조인
 
@@ -276,7 +287,11 @@ from decimal import Decimal
 **역할**: 백테스트 및 단위 테스트용. 메모리 딕셔너리로 전체 대체.
 
 **핵심 동작**
-- 모든 테이블을 `dict` 또는 `list`로 보관
+- StoragePort ABC의 8개 메서드 전부 구현. 모든 테이블을 `dict` 또는 `list`로 보관.
+- `save_ohlcv`: `_ohlcv[(symbol, interval, ts)]`에 upsert
+- `load_ohlcv / load_position / load_all_positions`: 딕셔너리 조회
+- `update_position / save_trade / save_pnl`: 딕셔너리 upsert 또는 list append
+- `load_portfolio_snapshot`: `_positions` + `_daily_pnl` 합산
 - 트랜잭션 의사 구현: `async with self._lock:` (asyncio.Lock)
 
 **상태**
@@ -325,8 +340,10 @@ import holidays    # 한국 공휴일
 **핵심 동작**
 - `__init__`에서 시작 시각 주입
 - `advance_to(ts)` 메서드로 외부(CSVReplayAdapter)가 시뮬 시각 진행
+- `now()`: `_current` 반환 (시뮬 시각)
 - `sleep(s)` 은 즉시 반환 (시뮬 시각만 `_current += s`)
 - `is_trading_hours`: 시뮬 시각 기준으로 판단
+- `trading_hours_check`: `is_trading_hours` + 사유 문자열 반환 (WallClockAdapter와 동일 로직, 시뮬 시각 기준)
 
 **상태**
 - `_current: datetime` — 시뮬 현재 시각
@@ -460,6 +477,7 @@ def create_broker_port(config: Config) -> BrokerPort:
 | 날짜 | 버전 | 변경 |
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. 12 Adapter 명세 통합. |
+| 2026-04-17 | v1.1 | 교차 검증 후 보완: MockBroker 3메서드, KISWebSocket 3메서드, KISRest 2메서드, PostgresStorage 3메서드, InMemoryStorage 전체, HistoricalClock 2메서드 설명 추가. |
 
 ---
 

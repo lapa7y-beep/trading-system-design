@@ -158,6 +158,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-17 | 설계작업 7 완료 — project-structure-phase1 추가. Hexagonal 3층 폴더 트리 + 의존 방향 + 구현 착수 순서. |
 | 2026-04-17 | **설계작업 8 완료 — test-strategy-phase1 추가. Phase 1 설계 단계 전체 완료.** |
 | 2026-04-17 | **전체 점검 완료** — 20항목 검증, 3건 수정 (SSoT Port methods 동기화, FSM transition 수 오기재, Step1 누락). graph_ir v1.0→v1.0.1. 구현 착수 판정 완료. |
+| 2026-04-17 | **2차 교차 검증** — adapters.md 메서드 커버리지 6건 보완 (v1.0→v1.1). 검증 보고서 v1.1 업데이트. |
 
 ---
 
