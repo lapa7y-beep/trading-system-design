@@ -1,5 +1,6 @@
 # CLI Design — `atlas` Command
 
+> **구현 여정**: Step 10c(start/stop/status)와 Step 10d(halt 30초)에서 구현. ADR-012 §6 참조.
 > **상태**: stable
 > **선행 문서**: `docs/decisions/011-phase1-scope.md`
 > **배경**: Phase 1에서 Telegram Bot을 제외(α 선택)함에 따라, 운영 제어는 CLI로 일원화.

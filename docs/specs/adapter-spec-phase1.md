@@ -1,5 +1,6 @@
 # adapter-spec-phase1 — Adapter 구현 명세
 
+> **구현 여정**: Step 02(Port+DI), 03(CSVReplay), 07(MockBroker), 09(Postgres), 11b(KISPaper)에서 참조. ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
 > **목적**: Phase 1에서 구현할 12개 Adapter의 내부 동작, 의존성, 실패 처리, 전환 규칙을 단일 문서로 정의.

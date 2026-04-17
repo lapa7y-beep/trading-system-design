@@ -1,5 +1,6 @@
 # port-signatures-phase1 — Port ABC 통합 시그니처
 
+> **구현 여정**: Step 02에서 코드로 구현. Phase 1 종료까지 불변 (ADR-012 §7). 변경 시 ADR 발행 필수.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
 > **목적**: Phase 1에서 사용하는 6개 Port의 Python ABC 시그니처를 단일 문서로 정의.

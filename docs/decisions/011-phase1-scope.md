@@ -1,5 +1,6 @@
 # Phase 1 Scope — 확정본 (Source of Truth)
 
+> **구현 여정**: 이 문서의 범위와 합격 기준은 ADR-012에 정의된 17 Step으로 점진 구현됩니다. 각 Step의 실행 절차는 docs/runbooks/step-NN.md 참조.
 > **상태**: stable
 > **확정일**: 2026-04-16
 > **위치**: `docs/decisions/011-phase1-scope.md` (예정)

@@ -1,5 +1,6 @@
 # 데이터 수집 파이프라인
 
+> **구현 여정**: Step 03(CSVReplayAdapter)에서 CSV 형식 활용. ADR-012 §6 참조.
 > 상태: stable  
 > 날짜: 2026-04-16  
 > 연관 ADR: 008

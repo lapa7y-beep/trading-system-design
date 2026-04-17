@@ -1,5 +1,6 @@
 # DB 스택 및 저장소 구조
 
+> **구현 여정**: Step 09(DB 영속화)에서 PostgresStorageAdapter로 구현. ADR-012 §6 참조.
 > 상태: stable  
 > 날짜: 2026-04-16  
 > 연관 ADR: 006

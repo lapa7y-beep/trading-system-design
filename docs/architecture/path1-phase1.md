@@ -1,5 +1,6 @@
 # Path 1 — Phase 1 Detailed Design
 
+> **구현 여정**: Step 00(전체), 03(MarketData), 05(Strategy), 07(OrderExecutor), 08a/b(FSM)에서 참조. ADR-012 참조.
 > **상태**: stable
 > **버전**: Phase 1 — v1.0
 > **선행 문서**: `docs/decisions/011-phase1-scope.md`

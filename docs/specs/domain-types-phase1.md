@@ -1,5 +1,6 @@
 # Domain Types — Phase 1
 
+> **구현 여정**: Step 00에서 Bar/Signal/Order/Fill 4개, Step 02에서 나머지 타입 도입. ADR-012 §6 참조.
 > **상태**: stable
 > **선행 문서**: `docs/decisions/011-phase1-scope.md`
 > **구현 위치**: `core/domain/*.py`

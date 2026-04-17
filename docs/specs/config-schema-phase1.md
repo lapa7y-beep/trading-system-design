@@ -1,5 +1,6 @@
 # config-schema-phase1 — 통합 설정 스키마
 
+> **구현 여정**: Step 02(Enabling Point 설정)에서 참조. ADR-012 §6 참조.
 > **상태**: Phase 1 확정
 > **최종 수정**: 2026-04-17
 > **목적**: `config/config.yaml`의 전체 구조, 타입, 기본값, 유효범위를 단일 문서로 정의.

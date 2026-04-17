@@ -1,5 +1,6 @@
 # Design Validation Report — Phase 1 설계 점검 결과
 
+> **구현 여정**: 이 검증 항목들은 ADR-012 17 Step 완료 후 최종 점검 체크리스트로 사용. ADR-012 §9 참조.
 > **실행 일자**: 2026-04-17
 > **범위**: 저장소 `lapa7y-beep/trading-system-design` 전체 활성 문서
 > **대조 기준**: `graph_ir_phase1.yaml` (SSoT)
