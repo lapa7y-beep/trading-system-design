@@ -66,6 +66,7 @@
 | [`docs/specs/adapter-spec-phase1.md`](docs/specs/adapter-spec-phase1.md) | **12 Adapter 구현 명세** (내부동작·실패처리·전환규칙) |
 | [`docs/specs/error-handling-phase1.md`](docs/specs/error-handling-phase1.md) | **에러 핸들링 통합 매트릭스** (4계층·Severity·SAFE_MODE·CB·KIS코드) |
 | [`docs/specs/project-structure-phase1.md`](docs/specs/project-structure-phase1.md) | **프로젝트 폴더 구조** (Hexagonal 3층·의존방향·구현착수순서) |
+| [`docs/specs/test-strategy-phase1.md`](docs/specs/test-strategy-phase1.md) | **테스트 전략** (Unit/Integration/Acceptance, 합격기준 5 자동화, CI) |
 
 ---
 
@@ -154,6 +155,7 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 2026-04-17 | 설계작업 2/3/4/5 완료 — config-schema, port-signatures, adapter-spec, boot-shutdown 4개 문서 추가. INDEX 섹션 2/4 갱신. |
 | 2026-04-17 | 설계작업 6 완료 — error-handling-phase1 추가. 에러 처리 규칙 노드·Port·CB·SAFE_MODE·KIS코드 통합. |
 | 2026-04-17 | 설계작업 7 완료 — project-structure-phase1 추가. Hexagonal 3층 폴더 트리 + 의존 방향 + 구현 착수 순서. |
+| 2026-04-17 | **설계작업 8 완료 — test-strategy-phase1 추가. Phase 1 설계 단계 전체 완료.** |
 
 ---
 
@@ -168,9 +170,24 @@ Phase 2 진입 시 확장 예정. 현재는 Phase 1 범위만.
 | 5 | Boot/Shutdown 시퀀스 Phase 1 축약판 | ✅ 완료 |
 | 6 | 에러 핸들링 통합 매트릭스 | ✅ 완료 |
 | 7 | 프로젝트 폴더 구조 | ✅ 완료 |
-| 8 | 테스트 전략 | ⏳ 마지막 |
+| 8 | 테스트 전략 | ✅ 완료 |
 
-**방침**: 설계 작업 1~8 전부 완료 후 전체 점검 → 구현 설계 진입. 코드 설계는 가장 나중.
+**🎯 Phase 1 설계 완료.** 전체 점검 후 구현 착수.
+
+---
+
+## 구현 착수 조건 체크리스트
+
+구현을 시작하기 전에 다음을 확인한다:
+
+- [ ] 활성 문서 수치 체크섬 일치 (Nodes 6 / Ports 6 / Edges 14 / Domain Types 20 / Adapters 12 / CLI 12 / Screens 17 / 합격기준 5)
+- [ ] `graph_ir_phase1.yaml`이 모든 설계 문서의 SSoT 역할 수행
+- [ ] `config-schema`와 `path1-phase1-blueprint`의 config 키 일치
+- [ ] `port-signatures`와 `adapter-spec`의 메서드 시그니처 일치
+- [ ] `project-structure` §10의 구현 착수 8단계 확인
+- [ ] `test-strategy` §5의 합격 기준 5개 자동화 가능 여부 확인
+- [ ] 로컬 개발 환경 준비 (Python 3.11+, Docker, PostgreSQL)
+- [ ] KIS API 인증 정보 준비 (모의투자 계정)
 
 ---
 
