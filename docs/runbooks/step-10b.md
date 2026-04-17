@@ -2,12 +2,12 @@
 
 ## 1. 목적
 
-RiskGuard에 변동성 체크와 유동성 체크 추가. 7체크 전부 완성.
+RiskGuard에 변동성·유동성 체크 추가. 7체크 전부 완성.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2
-- 기여 방식: 모의투자 5일 incident-free — 시장 상황 기반 거부 필요
+- 기여 방식: 모의투자 5일 무사고 — 시장 상황 기반 거부
 
 ## 3. 착수 전 체크리스트
 
@@ -16,7 +16,7 @@ RiskGuard에 변동성 체크와 유동성 체크 추가. 7체크 전부 완성.
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/path1-phase1.md` — RiskGuard 노드 섹션 — 변동성/유동성 체크 항목 — 체크 로직 상세 (10분)
+1. `docs/architecture/path1-phase1.md` — §5 Pre-Order Check 상세 — 변동성/유동성 항목 — 체크 로직 상세 (10분)
 
 **이 Step에서 읽지 않는 문서**: cli-design (Step 10c/d), backtesting (Step 11)
 

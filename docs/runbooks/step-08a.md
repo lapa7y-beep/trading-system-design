@@ -1,13 +1,13 @@
-# Step 08a — FSM 3상태 (IDLE/IN_POSITION/EXIT_PENDING)
+# Step 08a — 개별 종목 FSM 기본 4상태 (IDLE/ORDER_PLACED/HOLDING/DONE)
 
 ## 1. 목적
 
-TradingFSM을 2상태 stub에서 3상태(IDLE, IN_POSITION, EXIT_PENDING)로 확장. 기본 전이가 관찰된다.
+TradingFSM을 2상태 stub에서 4상태(IDLE→ORDER_PLACED→HOLDING→DONE)로 확장.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2
-- 기여 방식: 모의투자 5일 incident-free — FSM이 정확해야 주문 흐름 제어 가능
+- 기여 방식: 모의투자 무사고 — FSM이 정확해야 주문 흐름 제어 가능
 
 ## 3. 착수 전 체크리스트
 
@@ -16,10 +16,10 @@ TradingFSM을 2상태 stub에서 3상태(IDLE, IN_POSITION, EXIT_PENDING)로 확
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/fsm-design.md` — 상태 목록 섹션 (IDLE, IN_POSITION, EXIT_PENDING만) — 3상태 전이 규칙 (15분)
-2. `docs/specs/domain-types-phase1.md` — FSMTransition 타입 — 타입 확인 (3분)
+1. `docs/architecture/fsm-design.md` — §3 레벨 2 개별 종목 FSM — IDLE~HOLDING~DONE 경로만 — 4상태 전이 규칙 (15분)
+2. `docs/specs/domain-types-phase1.md` — §3.6 Portfolio (FSM 관련 타입 해당 시) — 타입 확인 (3분)
 
-**이 Step에서 읽지 않는 문서**: FSM 나머지 7상태 (Step 8b), db-schema (Step 9)
+**이 Step에서 읽지 않는 문서**: FSM 나머지 9상태 (Step 8b)
 
 ## 5. 작업 단계
 
@@ -37,7 +37,7 @@ TradingFSM을 2상태 stub에서 3상태(IDLE, IN_POSITION, EXIT_PENDING)로 확
 
 ```bash
 git add -A
-git commit -m "Step 08a: FSM 3상태 (IDLE/IN_POSITION/EXIT_PENDING)
+git commit -m "Step 08a: 개별 종목 FSM 기본 4상태 (IDLE/ORDER_PLACED/HOLDING/DONE)
 
 Observable change: (착수 전 상세화)
 Fitness criteria:  2

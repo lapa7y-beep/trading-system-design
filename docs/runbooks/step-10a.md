@@ -7,7 +7,7 @@ RiskGuard에 일일 손실한도와 포지션별 손실한도 2체크 추가.
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2
-- 기여 방식: 모의투자 5일 incident-free — 손실 제한 필수
+- 기여 방식: 모의투자 5일 무사고 — 손실 제한 필수
 
 ## 3. 착수 전 체크리스트
 
@@ -16,7 +16,8 @@ RiskGuard에 일일 손실한도와 포지션별 손실한도 2체크 추가.
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/path1-phase1.md` — RiskGuard 노드 섹션 — 손실한도 체크 항목 — 체크 로직 상세 (10분)
+1. `docs/architecture/path1-phase1.md` — §5 Pre-Order Check 상세 — 손실한도 항목 — 체크 로직 상세 (10분)
+2. `docs/specs/config-schema-phase1.md` — §5 리스크 관리 — 설정 키 확인 (5분)
 
 **이 Step에서 읽지 않는 문서**: cli-design (Step 10c/d), backtesting (Step 11)
 

@@ -24,7 +24,7 @@
 - [ ] **Step 06** — RiskGuard 포지션 한도
 - [ ] **Step 07** — MockBroker + OrderExecutor
 - [ ] **Step 08a** — FSM 3상태 (IDLE/IN_POSITION/EXIT_PENDING)
-- [ ] **Step 08b** — FSM 나머지 (10상태 23전이 완전)
+- [ ] **Step 08b** — FSM 나머지 (개별 종목 13상태 완전)
 
 ### 두께 증가 (Step 9~11b)
 

@@ -2,12 +2,12 @@
 
 ## 1. 목적
 
-RiskGuard의 return True를 실제 포지션 한도 체크로 교체. 첫 주문 거부가 발생할 수 있다.
+RiskGuard return True를 실제 포지션 한도 체크로 교체. 첫 주문 거부 발생 가능.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2
-- 기여 방식: 모의투자 5일 incident-free — 리스크 체크 없으면 무사고 불가
+- 기여 방식: 모의투자 5일 무사고 — 리스크 체크 없으면 무사고 불가
 
 ## 3. 착수 전 체크리스트
 
@@ -16,9 +16,10 @@ RiskGuard의 return True를 실제 포지션 한도 체크로 교체. 첫 주문
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/path1-phase1.md` — RiskGuard 노드 섹션 — 리스크 체크 항목 중 포지션 한도만 (10분)
+1. `docs/architecture/path1-phase1.md` — §2.4 RiskGuard, §5 Pre-Order Check 상세 — 리스크 체크 항목 중 포지션 한도만 (10분)
+2. `docs/specs/error-handling-phase1.md` — §3.4 RiskGuard — RiskGuard 에러 처리 규칙 (5분)
 
-**이 Step에서 읽지 않는 문서**: RiskGuard 나머지 6체크 (Step 10a/10b), fsm-design (Step 8), db-schema (Step 9)
+**이 Step에서 읽지 않는 문서**: RiskGuard 나머지 6체크 (Step 10a/10b)
 
 ## 5. 작업 단계
 

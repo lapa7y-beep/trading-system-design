@@ -1,13 +1,13 @@
-# Step 08b — FSM 나머지 (10상태 23전이 완전)
+# Step 08b — 개별 종목 FSM 나머지 (13상태 완전)
 
 ## 1. 목적
 
-FSM을 10상태 23전이 완전체로 확장. ERROR, RECONCILING, HALTED 등 모든 상태 포함.
+FSM을 13상태 완전체로 확장. WATCHING, SCENARIO_RUNNING, PENDING_APPROVAL, PARTIAL_FILLED, EXITING, RECONCILING, ERROR, SUSPENDED 포함.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 2, 5
-- 기여 방식: 모의투자 incident-free + 크래시 복구 — ERROR/RECONCILING 상태 필수
+- 기여 방식: 모의투자 무사고 + 크래시 복구 — ERROR/RECONCILING 상태 필수
 
 ## 3. 착수 전 체크리스트
 
@@ -16,7 +16,8 @@ FSM을 10상태 23전이 완전체로 확장. ERROR, RECONCILING, HALTED 등 모
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/fsm-design.md` — 전체 정독 — 10상태 23전이 전체 규칙 (30분)
+1. `docs/architecture/fsm-design.md` — 전체 정독 (§1~6) — 이중 레벨 FSM 전체 + 전이 규칙 + 취약점 대응 (30분)
+2. `docs/architecture/boot-shutdown-phase1.md` — §3 Crash Recovery 상세 — 복구 로직과 FSM 상태 연계 (15분)
 
 **이 Step에서 읽지 않는 문서**: db-schema (Step 9), cli-design (Step 10)
 
@@ -36,7 +37,7 @@ FSM을 10상태 23전이 완전체로 확장. ERROR, RECONCILING, HALTED 등 모
 
 ```bash
 git add -A
-git commit -m "Step 08b: FSM 나머지 (10상태 23전이 완전)
+git commit -m "Step 08b: 개별 종목 FSM 나머지 (13상태 완전)
 
 Observable change: (착수 전 상세화)
 Fitness criteria:  2, 5

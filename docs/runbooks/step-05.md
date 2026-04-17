@@ -1,13 +1,13 @@
-# Step 05 — Strategy 실제 (SMA 골든크로스)
+# Step 05 — StrategyEngine 실제 (SMA 골든크로스)
 
 ## 1. 목적
 
-Strategy stub을 SMA 골든크로스 로직으로 교체. BUY가 조건부로만 발생한다.
+Strategy stub을 SMA 골든크로스 로직으로 교체. BUY가 조건부로만 발생.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 1
-- 기여 방식: 백테스트 Sharpe > 1.0 — 전략이 있어야 Sharpe 계산 가능
+- 기여 방식: Sharpe > 1.0 — 전략이 있어야 Sharpe 계산 가능
 
 ## 3. 착수 전 체크리스트
 
@@ -16,10 +16,11 @@ Strategy stub을 SMA 골든크로스 로직으로 교체. BUY가 조건부로만
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/path1-phase1.md` — Strategy 노드 섹션 — 전략 로직 설계 확인 (10분)
-2. `docs/specs/domain-types-phase1.md` — Signal 타입 — 필드 확인 (3분)
+1. `docs/architecture/path1-phase1.md` — §2.3 StrategyEngine — 전략 로직 설계 (10분)
+2. `docs/specs/domain-types-phase1.md` — §3.4 Signal — Signal 타입 필드 (3분)
+3. `docs/specs/adapter-spec-phase1.md` — §8.1 FileSystemStrategyLoader — 전략 파일 로딩 방식 (5분)
 
-**이 Step에서 읽지 않는 문서**: fsm-design (Step 8), db-schema (Step 9), cli-design (Step 10)
+**이 Step에서 읽지 않는 문서**: fsm-design (Step 8), db-schema (Step 9)
 
 ## 5. 작업 단계
 
@@ -37,7 +38,7 @@ Strategy stub을 SMA 골든크로스 로직으로 교체. BUY가 조건부로만
 
 ```bash
 git add -A
-git commit -m "Step 05: Strategy 실제 (SMA 골든크로스)
+git commit -m "Step 05: StrategyEngine 실제 (SMA 골든크로스)
 
 Observable change: (착수 전 상세화)
 Fitness criteria:  1

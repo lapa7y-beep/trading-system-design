@@ -2,7 +2,7 @@
 
 ## 1. 목적
 
-atlas halt 명령 구현. 30초 내에 모든 미체결 주문 취소 + FSM HALTED 전이.
+atlas halt 명령 구현. 30초 내 미체결 주문 취소 + FSM SUSPENDED 전이.
 
 ## 2. 합격 기준 매핑
 
@@ -16,8 +16,9 @@ atlas halt 명령 구현. 30초 내에 모든 미체결 주문 취소 + FSM HALT
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/architecture/cli-design.md` — halt 명령 섹션 — halt 동작 정의와 타임아웃 (10분)
-2. `docs/architecture/fsm-design.md` — HALTED 상태 섹션 — HALTED 전이 규칙 (5분)
+1. `docs/architecture/cli-design.md` — §5.2 atlas halt — halt 동작 정의 (10분)
+2. `docs/architecture/boot-shutdown-phase1.md` — §5 Emergency Halt 시퀀스 — halt 시퀀스 상세 + 타임아웃 (10분)
+3. `docs/architecture/fsm-design.md` — §3 — SUSPENDED 상태 — SUSPENDED 전이 규칙 (5분)
 
 **이 Step에서 읽지 않는 문서**: backtesting (Step 11)
 

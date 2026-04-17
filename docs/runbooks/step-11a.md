@@ -2,12 +2,12 @@
 
 ## 1. 목적
 
-과거 1년 CSV 데이터로 백테스트 실행, Sharpe ratio 계산 및 출력.
+과거 1년 CSV 데이터로 백테스트 실행, Sharpe ratio 계산.
 
 ## 2. 합격 기준 매핑
 
 - Phase 1 합격기준: 1
-- 기여 방식: 백테스트 Sharpe > 1.0 — Phase 1 합격기준 1번
+- 기여 방식: Sharpe > 1.0 — Phase 1 합격기준 1번
 
 ## 3. 착수 전 체크리스트
 
@@ -16,8 +16,9 @@
 
 ## 4. 참조 문서 (읽을 순서)
 
-1. `docs/pipelines/backtesting.md` — 전체 — 백테스트 파이프라인 설계 (20분)
-2. `docs/decisions/011-phase1-scope.md` — 합격 기준 섹션 — Sharpe > 1.0 기준 확인 (5분)
+1. `docs/pipelines/backtesting.md` — 전체 (§1~7) — 백테스트 파이프라인 설계 (20분)
+2. `docs/specs/test-strategy-phase1.md` — §5.2 합격 기준 1 — 백테스트 샤프 — 테스트 코드 구조 (10분)
+3. `docs/decisions/011-phase1-scope.md` — §5 합격 기준 — Sharpe > 1.0 기준 확인 (3분)
 
 **이 Step에서 읽지 않는 문서**: 없음 — Phase 1 마지막 개발 Step
 
