@@ -136,6 +136,7 @@ import httpx
 **핵심 동작**
 - `__init__`에서 `csv_replay.data_dir` 내 파일 목록 스캔
 - `subscribe` 시 지정 종목 CSV 로드 → 시간순 정렬 → 내부 큐 적재
+- `unsubscribe`: 해당 종목의 내부 큐 비우기 + `_subscribed_symbols`에서 제거
 - `stream()` 은 `speed_multiplier` 비율로 Quote를 yield. `1.0` = 실시간, `0` = 즉시
 
 **CSV 포맷**
@@ -478,6 +479,7 @@ def create_broker_port(config: Config) -> BrokerPort:
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. 12 Adapter 명세 통합. |
 | 2026-04-17 | v1.1 | 교차 검증 후 보완: MockBroker 3메서드, KISWebSocket 3메서드, KISRest 2메서드, PostgresStorage 3메서드, InMemoryStorage 전체, HistoricalClock 2메서드 설명 추가. |
+| 2026-04-17 | v1.2 | 3차 검증: CSVReplayAdapter unsubscribe 설명 추가. |
 
 ---
 

@@ -190,3 +190,26 @@ done
 - Domain Types ↔ DB: 의도적 차이만 ✅
 
 *Design Validation Report v1.1 — 2026-04-17*
+
+---
+
+## 9. 3차 교차 검증 (2026-04-17)
+
+자동화 검증 스크립트(Python)로 71개 항목 일괄 검증. 결과: 69 통과 / 2 실패.
+
+### 실패 분석
+
+| # | 항목 | 원인 | 조치 |
+|---|------|------|------|
+| 1 | CSVReplayAdapter unsubscribe 미언급 | 2차 검증에서 누락 | adapters.md v1.2에서 보완 |
+| 2 | CLI 15개 감지 | 스크립트 오탐 — Phase 2 범위 밖 명령 (`strategy reload`, `metrics export`)까지 매칭 | **문서 정상** (Phase 1 CLI는 정확히 12개) |
+
+### 수정 파일
+
+- `docs/specs/adapter-spec-phase1.md` v1.1 → v1.2: CSVReplayAdapter unsubscribe 추가
+
+### 최종 결과
+
+**71개 항목 중 70개 통과, 1개 오탐(문서 정상). 실질 불일치 0건.**
+
+*Design Validation Report v1.2 — 2026-04-17*
