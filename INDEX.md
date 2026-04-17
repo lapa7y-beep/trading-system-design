@@ -74,6 +74,8 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | `project-structure-phase1.md` | Phase 1 프로젝트 폴더 구조 (Hexagonal 3층·의존방향) |
 | `test-strategy-phase1.md` | Phase 1 테스트 전략 (피라미드·합격기준 자동화·CI) |
 | `quant-spec-phase1.md` | Phase 1 퀀트 명세 (전략수식·한국시장규칙·체결모델·백테스트재현성) |
+| `synthetic-exchange-phase1.md` | 가상거래소 설계 (GBM시세생성·호가창·시나리오주입·MonteCarlo) |
+| `synthetic-exchange-spec.md` | 가상 거래소 (합성시장생성·몬테카를로·스트레스시나리오) |
 | `db-schema-phase1.sql` | 실행 가능 DDL (6테이블) |
 
 ### 파이프라인 (pipelines/) — 데이터가 어떻게 흐르는가
