@@ -430,6 +430,10 @@ from atlas.exchange.engine import ExchangeEngine
 
 ## 5c. ExecutionEventPort 어댑터 (3개) — ADR-013 신설
 
+> **사용 노드**: ExecutionReceiver (체결 통보 push 구독 전용)
+> **ADR**: 013-atlas-driver-broker-boundary
+> **역할**: 체결 이벤트를 ExecutionReceiver에 전달. ExecutionReceiver는 trades INSERT + PortfolioStore 갱신 + TradingFSM emit.
+
 ### 5c.1 MockExecutionEventAdapter
 
 **역할**: 백테스트·단위 테스트용. MockOrderAdapter가 체결 처리할 때 in-process 이벤트 emit.

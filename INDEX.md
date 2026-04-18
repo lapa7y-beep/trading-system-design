@@ -19,7 +19,7 @@
 ### 경로 B — 전체 설계를 먼저 파악하려는 경우
 
 1. `docs/what/decisions/011-phase1-scope.md` — Phase 1 범위·합격기준
-2. `docs/what/architecture/path1-design.md` — 6노드 상세 설계
+2. `docs/what/architecture/path1-design.md` — 7노드 상세 설계
 3. `graph_ir_phase1.yaml` — 노드/엣지 정식 정의
 4. `docs/what/specs/port-signatures-phase1.md` — 8 Port 시그니처
 5. `docs/what/specs/domain-types-phase1.md` — 20 타입
@@ -48,14 +48,15 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | 007 | `007-fsm-design.md` | 이중 레벨 FSM 설계 (종목군 + 개별 종목) |
 | 008 | `008-data-collection.md` | 데이터 수집 원칙 및 파이프라인 구조 |
 | **011** | `011-phase1-scope.md` | **Phase 1 범위·합격기준·구현순서 확정** |
+| **013** | `013-atlas-driver-broker-boundary.md` | **ATLAS 운전사-브로커 경계 확정 + OrderExecutor 분해 (ADR-013)** |
 
 ### 아키텍처 (architecture/) — 어떻게 생겼는가
 
 | 파일 | 내용 |
 |------|------|
 | `system-overview.md` | ATLAS 전체 아키텍처 개요 (5 Path, HR-DAG) |
-| `path1-design.md` | Phase 1 거래 실행 경로 상세 설계 (6노드·14엣지) |
-| `path1-node-blueprint.md` | Phase 1 6노드 내부 상세 (L3 Blueprint) |
+| `path1-design.md` | Phase 1 거래 실행 경로 상세 설계 (7노드·18엣지) |
+| `path1-node-blueprint.md` | Phase 1 7노드 내부 상세 (L3 Blueprint, ADR-013) |
 | `fsm-design.md` | 거래 상태 머신 설계 (종목군 5상태 + 개별 13상태) |
 | `cli-design.md` | atlas CLI 명령어 설계 (12명령·IPC·보안) |
 | `db-stack.md` | 데이터 저장소 구조 (PostgreSQL·TimescaleDB·Redis) |
