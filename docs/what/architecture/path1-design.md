@@ -1,33 +1,34 @@
-# Phase 1 거래 실행 경로 상세 설계 (6노드·14엣지)
+# Phase 1 거래 실행 경로 상세 설계 (7노드·18엣지)
 
-> **목적**: Path 1의 6노드(MarketDataReceiver~TradingFSM), 14엣지, Pre-Order 7체크, 합격 증명 시나리오를 상세 정의한다.
+> **목적**: Path 1의 7노드(MarketDataReceiver~TradingFSM + ExecutionReceiver), 18엣지, Pre-Order 8체크, 합격 증명 시나리오를 상세 정의한다.
 > **층**: What
 > **상태**: stable
-> **버전**: Phase 1 — v1.0
-> **구현 여정**: Step 00(전체), 03(MarketDataReceiver), 05(StrategyEngine), 07(OrderExecutor), 08a/b(TradingFSM)에서 참조. ADR-012 참조.
-> **선행 문서**: `docs/what/decisions/011-phase1-scope.md`
+> **버전**: Phase 1 — v2.0 (ADR-013 반영)
+> **구현 여정**: Step 00(전체), 03(MarketDataReceiver), 05(StrategyEngine), 07(OrderExecutor+ExecutionReceiver), 08a/b(TradingFSM)에서 참조. ADR-012, ADR-013 참조.
+> **선행 문서**: `docs/what/decisions/011-phase1-scope.md`, `docs/what/decisions/013-atlas-driver-broker-boundary.md`
 > **폐기**: 기존 `port_interface_path1_v2.0.md`, `node_blueprint_path1_v1.0.md`는 Phase 1 범위 밖 7개 노드를 포함. Phase 1에서는 본 문서가 우선한다.
 
 ## 1. Scope 재확인
 
-Path 1 원래 설계는 13노드였으나, Phase 1에서는 **6노드로 축소**한다.
+Path 1 원래 설계는 13노드였으나, Phase 1에서는 **7노드로 축소**한다 (ADR-013 이후).
 
-| Phase 1 포함 (6개) | Phase 2+ 연기 (7개) |
+| Phase 1 포함 (7개) | Phase 2+ 연기 (6개) |
 |---|---|
 | MarketDataReceiver | Screener |
 | IndicatorCalculator | WatchlistManager |
 | StrategyEngine | SubscriptionRouter |
 | RiskGuard | PositionMonitor |
-| OrderExecutor | ExitConditionGuard |
-| TradingFSM | ExitExecutor |
-| | (예비 노드 1개) |
+| OrderExecutor (요청만, 축소) | ExitConditionGuard |
+| **ExecutionReceiver (신설, ADR-013)** | ExitExecutor |
+| TradingFSM | |
 
 **종목 소스**: Screener 대신 `config/watchlist.yaml`에 수동 지정 3~5 종목.
 **청산**: ExitExecutor 대신 전략 자체가 매도 Signal을 직접 생성.
+**체결 수신**: OrderExecutor가 아닌 **ExecutionReceiver**가 전담 (ADR-013).
 
 ---
 
-## 2. 6노드 설계
+## 2. 7노드 설계
 
 ### 2.1 MarketDataReceiver
 
@@ -183,26 +184,37 @@ class RiskDecision(BaseModel):
 
 ---
 
-## 3. Path 1 Phase 1 엣지 (14개)
+## 3. Path 1 Phase 1 엣지 (18개, ADR-013 반영)
 
 ```
-MarketDataPort ──[quote_stream]──> IndicatorCalculator
-IndicatorCalculator ──[indicator_bundle]──> StrategyEngine
-PortfolioStore ──[position_snapshot]──> StrategyEngine (ConfigRef)
-StrategyEngine ──[signal_output]──> RiskGuard
-AccountPort ──[balance, positions]──> RiskGuard (잔고/포지션 조회)
-RiskGuard ──[approved_signal]──> OrderExecutor
-RiskGuard ──[rejection_event]──> AuditLogger (AuditTrace)
-OrderExecutor ──[order_request]──> OrderPort
-OrderPort ──[order_result]──> OrderExecutor
-OrderExecutor ──[execution_event]──> TradingFSM
-OrderExecutor ──[execution_event]──> AuditLogger (AuditTrace)
-TradingFSM ──[state_transition]──> PortfolioStore
-TradingFSM ──[state_transition]──> AuditLogger (AuditTrace)
-AccountPort ──[reconcile]──> TradingFSM (crash recovery 시)
+MarketDataPort ──[raw_tick]──> MarketDataReceiver                        (e01)
+MarketDataReceiver ──[quote_stream]──> IndicatorCalculator               (e02)
+IndicatorCalculator ──[indicator_bundle]──> StrategyEngine               (e03)
+PortfolioStore ──[position_snapshot]──> StrategyEngine (ConfigRef)       (e04)
+StrategyEngine ──[signal_output]──> RiskGuard                            (e05)
+PortfolioStore ──[portfolio_snapshot]──> RiskGuard (ConfigRef)           (e06)
+RiskGuard ──[approved_signal]──> OrderExecutor                           (e07)
+RiskGuard ──[rejection_event]──> AuditStore (AuditTrace)                 (e08)
+OrderExecutor ──[order_request]──> OrderPort                             (e09)
+OrderExecutor ──[order_ack]──> TradingFSM  (이전의 execution_event 아님)  (e10)
+OrderExecutor ──[order_audit]──> AuditStore (AuditTrace)                 (e11)
+TradingFSM ──[state_transition]──> PortfolioStore                        (e12)
+TradingFSM ──[fsm_audit]──> AuditStore (AuditTrace)                      (e13)
+cli_halt ──[halt_signal]──> TradingFSM (Command)                         (e14)
+
+── ADR-013 신설 (체결 통보 경로 분리) ──
+ExecutionEventPort ──[execution_event]──> ExecutionReceiver              (e15)
+ExecutionReceiver ──[execution_event]──> TradingFSM                      (e16)
+ExecutionReceiver ──[portfolio_update]──> PortfolioStore                 (e17)
+ExecutionReceiver ──[execution_audit]──> AuditStore (AuditTrace)         (e18)
 ```
 
-**Cross-Path 엣지 없음**. Shared Store는 PortfolioStore 1개만.
+**Cross-Path 엣지 없음**. Shared Store는 PortfolioStore 중심.
+
+**책임 분해 (ADR-013)**:
+- OrderExecutor: 주문 **요청**만 (OrderPort → TradingFSM의 PENDING 전이)
+- ExecutionReceiver: 체결 **수신**만 (ExecutionEventPort → TradingFSM의 완료 전이 + PortfolioStore 갱신)
+- TradingFSM: 상태 **미러링**만 (증권사가 진실)
 
 ---
 
@@ -211,7 +223,7 @@ AccountPort ──[reconcile]──> TradingFSM (crash recovery 시)
 | Store | 테이블 | 역할 |
 |-------|--------|------|
 | MarketDataStore | `market_ohlcv` | OHLCV 영속화 |
-| PortfolioStore | `positions`, `trades`, `daily_pnl` | 포지션·체결·손익 |
+| PortfolioStore | `positions`, `trades`, `daily_pnl` | 포지션·체결·손익 (증권사 캐시) |
 | AuditStore | `audit_events`, `order_tracker` | 감사·주문 추적 |
 
 **ConfigStore 없음** — `config/*.yaml` 파일로 대체.

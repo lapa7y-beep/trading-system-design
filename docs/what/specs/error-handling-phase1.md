@@ -164,6 +164,23 @@ Layer 4: AuditPort       ← 모든 에러 발생 기록 (append-only)
 | `StorageError` | 로컬 파일 `logs/audit_fallback.jsonl` 에 append → critical 로깅 |
 | 연속 실패 | 전역 SAFE_MODE (감사 유실은 시스템 신뢰성 붕괴) |
 
+### 4.7 ExecutionEventPort (ADR-013 신설)
+
+| PortError | 대응 |
+|-----------|------|
+| `AuthError` | approval_key 재발급 1회 → 실패 시 SAFE_MODE (critical) |
+| `ConnectionError` | 지수 백오프 재연결 (1→2→4→...→60초) |
+| `ParseError` | 해당 메시지 폐기, 다음 진행 (warn) |
+| 중복 execution_uuid | 무시 (LRU 캐시), audit에 dedup 기록 (info) |
+| 핸들러 예외 | 로깅만, 구독 유지 (error) |
+| 60초 연속 끊김 | SAFE_MODE 전이 (critical) — 체결 통보 유실 위험 |
+
+**왜 critical인가**: 체결 이벤트를 놓치면 ATLAS의 PortfolioStore와 증권사 계좌가 어긋난다.
+ATLAS는 정확한 포지션을 모르는 상태에서 주문을 내면 안 됨 → 안전 차단.
+
+**복구 전략**: WebSocket 재연결 후 AccountPort.get_balance/get_positions() 호출 →
+PortfolioStore 증권사 기준으로 덮어쓰기 (진실 복원).
+
 ---
 
 ## 5. Circuit Breaker 통합

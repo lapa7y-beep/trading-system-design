@@ -58,8 +58,16 @@
      ▼
 [7] 브로커 연결 확인
      │   AccountPort.get_balance() 호출 → 잔고 조회 성공 = 인증 OK
-     │   AccountPort.reconcile() 호출 → 내부 DB ↔ 브로커 일관성 확인
+     │   AccountPort.get_balance() + get_positions() 호출 → PortfolioStore 증권사 기준 덮어쓰기
      │   실패 시 SAFE_MODE 진입
+     ▼
+[7b] 체결 통보 구독 시작 (ADR-013)
+     │   ExecutionEventPort.subscribe(ExecutionReceiver.on_execution_event)
+     │   mode=paper: KIS H0STCNI0 WebSocket 연결
+     │   mode=mock: MockEventBus 핸들러 등록
+     │   mode=synthetic: ExchangeEngine 콜백 등록
+     │   config.execution_event.crash_replay=true 이면 audit_events에서 최근 5분 이벤트 replay
+     │   실패 시 SAFE_MODE 진입 (체결 유실 위험)
      ▼
 [8] 시세 구독 시작
      │   MarketDataPort.subscribe(watchlist.symbols)
@@ -78,6 +86,7 @@
      ▼
 [12] 메인 이벤트 루프 진입
      │   MarketDataPort.stream() → IndicatorCalculator → ... → OrderExecutor
+     │   ExecutionEventPort (백그라운드 수신) → ExecutionReceiver → PortfolioStore + FSM
      │   atlas.control 파일에 mode: active 기록
      │
      └─► 정상 가동 상태
@@ -94,6 +103,7 @@
 | 5 | **SAFE_MODE** (Broker/MarketData 개별 실패 시) | 일부라도 없으면 매매 불가 |
 | 6 | **SAFE_MODE** | 전략 없으면 신호 생성 불가 |
 | 7 | **SAFE_MODE** | 잔고 조회 실패 = 주문 제출 불가 |
+| **7b** | **SAFE_MODE** | **체결 통보 구독 실패 = 포지션 추적 불가 (ADR-013)** |
 | 8 | fallback 시도 → 계속 실패 시 **SAFE_MODE** | 시세 없으면 지표 계산 불가 |
 | 9 | 경고 로깅, 계속 진행 | 스케줄러는 부차적 기능 |
 | 10~12 | **즉시 중단** | 프로세스 제어 불가 |

@@ -226,21 +226,24 @@ risk:
 
 ## 5. OrderExecutor
 
-### 5.1 내부 흐름
+> **ADR-013 변경**: 이전 OrderExecutor는 "요청 + 체결 수신 + 기록" 3역할 복합이었다.
+> 이제 **요청만** 담당. 체결 통보 수신은 ExecutionReceiver(§5b)가 전담.
+
+### 5.1 내부 흐름 (축소)
 
 ```
 on_approved_signal(signal):
   1. OrderRequest 생성 (order_uuid = UUID4)
   2. order_tracker 테이블 INSERT (status=submitted)
   3. OrderPort.submit(order_request)
-  4. 응답 수신:
+  4. 응답 수신 (ACK만, 체결 아님):
      - 성공 → broker_order_id 기록, status=accepted
+            → TradingFSM에 order_ack event emit (PENDING 상태 전이용)
      - 실패 → status=rejected, last_error 기록
      - 타임아웃 5초 → status=failed, Circuit Breaker 카운터++
-  5. 체결통보 대기 (KIS H0STCNI0 WebSocket)
-  6. 체결 → TradeRecord 생성 → trades INSERT
-  7. TradingFSM에 execution_event emit
-  8. audit_events에 기록
+  5. audit_events에 기록
+
+※ 체결 통보(FILLED)는 OrderExecutor가 받지 않는다. ExecutionReceiver가 받는다.
 
 circuit_breaker:
   60초 내 3회 연속 실패 → tripped = True
@@ -280,10 +283,83 @@ order_executor:
 
 ### 5.5 테스트 시나리오
 
-- [ ] MockBroker로 limit_buy 성공 → trades 1행 확인
-- [ ] MockBroker 3회 연속 실패 → CB trip → SAFE_MODE 전이
+- [ ] MockOrder로 limit_buy 제출 → order_tracker status=accepted 확인
+- [ ] MockOrder 3회 연속 실패 → CB trip → SAFE_MODE 전이
 - [ ] 동일 order_uuid 재전송 → 중복 INSERT 없음 확인
 - [ ] 타임아웃 5초 → status=failed 확인
+- [ ] ExecutionReceiver 단독 테스트 시 OrderExecutor는 호출되지 않아야 함
+
+---
+
+## 5b. ExecutionReceiver (ADR-013 신설)
+
+### 5b.1 역할
+
+체결 통보 push 구독 전용. `ExecutionEventPort`로부터 이벤트 수신 → trades 기록 →
+PortfolioStore 갱신 → TradingFSM에 execution_event emit.
+
+### 5b.2 내부 흐름
+
+```
+startup:
+  1. ExecutionEventPort.subscribe(self.on_execution_event)
+  2. 구독 시작, 백그라운드 수신 루프 진입 (Adapter 내부)
+
+on_execution_event(event):   # Adapter가 호출
+  1. 멱등성 체크: execution_uuid 이미 처리된 경우 무시 (audit 기록)
+  2. TradeRecord 생성:
+       symbol, side, qty, price, fee, tax, exec_time
+  3. trades 테이블 INSERT
+  4. PortfolioStore 갱신:
+       cash += (side == SELL) ? (price*qty - fee - tax) : -(price*qty + fee)
+       positions[symbol].qty += (side == BUY) ? qty : -qty
+       positions[symbol].avg_price 재계산
+  5. daily_pnl 누적 업데이트 (PortfolioStore 내부 테이블)
+  6. TradingFSM.emit("execution_event", event) → 상태 전이 트리거
+       ENTRY_PENDING + fill → IN_POSITION
+       EXIT_PENDING + fill → IDLE
+  7. audit_events INSERT (severity=info)
+
+shutdown:
+  1. ExecutionEventPort.unsubscribe()
+  2. 진행 중 핸들러 완료 대기
+```
+
+### 5b.3 설정 키
+
+```yaml
+execution_event:
+  mode: "mock"          # mock | synthetic | paper | live
+  reconnect_max_seconds: 60
+  dedup_cache_size: 1000
+  crash_replay: true    # 부팅 시 최근 5분 이벤트 재생 여부
+```
+
+### 5b.4 에러 매트릭스
+
+| 에러 | 감지 | 행동 | audit severity |
+|------|------|------|---------------|
+| WebSocket 끊김 | 핑 타임아웃 10초 | 재연결 (지수 백오프 1→60초) | warn |
+| 인증 실패 | 접속 401 | AuthError raise → SAFE_MODE | critical |
+| 메시지 파싱 실패 | JSON 예외 | 해당 메시지 폐기, 다음 진행 | warn |
+| 중복 execution_uuid | LRU 캐시 히트 | 무시 (audit만 기록) | info |
+| PortfolioStore 갱신 실패 | DB 오류 | 재시도 3회, 계속 실패 시 SAFE_MODE | critical |
+| TradingFSM 상태 전이 실패 | 잘못된 전이 | ERROR 상태 전이 | error |
+
+### 5b.5 Crash Replay
+
+부팅 시 `crash_replay: true`면:
+- AuditStore에서 최근 5분의 execution_event 조회
+- 각 event의 execution_uuid가 trades 테이블에 없으면 재처리
+- 있으면 멱등성으로 스킵
+
+### 5b.6 테스트 시나리오
+
+- [ ] MockExecutionEvent 1회 emit → trades 1행 + positions 갱신 확인
+- [ ] 동일 execution_uuid 2회 emit → trades 1행만 (중복 제거 확인)
+- [ ] WebSocket 강제 끊기 → 자동 재연결 후 이벤트 수신 재개
+- [ ] ExecutionReceiver가 처리 중 OrderExecutor가 새 주문 제출 → 둘 다 독립 동작
+- [ ] Crash 직전 5개 이벤트 → 재부팅 후 replay → trades 5행 복원
 
 ---
 
@@ -294,19 +370,28 @@ order_executor:
 ```
 6 States × 12 Transitions (transitions 라이브러리)
 
+입력 경로 (ADR-013 이후):
+  - OrderExecutor → order_ack event (주문 접수/거부, PENDING 전이용)
+  - ExecutionReceiver → execution_event (체결, 완료 전이용)
+  - cli_halt → halt_signal (SAFE_MODE 강제)
+
 startup:
   1. positions 테이블 조회 → 미청산 포지션 복원
   2. 각 symbol별 FSM 인스턴스 생성
   3. 복원된 포지션 → IN_POSITION 상태로 초기화
   4. order_tracker WHERE status IN ('submitted','accepted') → 미체결 확인
+  5. AccountPort.get_balance/get_positions() 호출 → 증권사 기준 PortfolioStore 덮어쓰기
 
-on_execution_event(event):
-  현재 상태에 따라 전이:
+on_order_ack(ack):    # OrderExecutor로부터
+  - IDLE + accepted(buy)  → ENTRY_PENDING
+  - IDLE + accepted(sell) → EXIT_PENDING
+  - any  + rejected       → ERROR 또는 IDLE (재시도 정책)
+
+on_execution_event(event):    # ExecutionReceiver로부터 (ADR-013)
   - ENTRY_PENDING + fill → IN_POSITION
-  - ENTRY_PENDING + reject → IDLE
-  - EXIT_PENDING + fill → IDLE (포지션 해소)
-  - any + broker_error → ERROR
-  - ERROR + recovery → IDLE
+  - EXIT_PENDING  + fill → IDLE (포지션 해소)
+  - any + broker_error   → ERROR
+  - ERROR + recovery     → IDLE
   - ERROR + unrecoverable → SAFE_MODE
 
 on_halt_signal():

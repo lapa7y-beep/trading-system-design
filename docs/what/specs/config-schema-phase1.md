@@ -56,16 +56,32 @@ account:
   reconcile_interval_seconds: 10  # int ≥ 1 | 내부 DB ↔ 브로커 잔고 일관성 검증 주기
 
 # ==========================================================================
-# 1c. 브로커 인증 정보 (KIS 공통, OrderPort+AccountPort가 공유)
+# 1c. 브로커 인증 정보 (KIS 공통, OrderPort+AccountPort+ExecutionEventPort가 공유)
 # ==========================================================================
 broker:
-  kis:                            # order.mode 또는 account.mode가 paper/live 일 때만 사용
+  kis:                            # order.mode 또는 account.mode 또는 execution_event.mode가 paper/live 일 때 사용
     app_key: ""                   # string | KIS API App Key
     app_secret: ""                # string | KIS API App Secret
     account_no: ""                # string | 계좌번호 (예: "50123456-01")
+    hts_id: ""                    # string | 체결 통보 WebSocket(H0STCNI0) tr_key 용
     base_url: "https://openapivts.koreainvestment.com:29443"
                                   # 모의투자 URL (paper)
                                   # live: https://openapi.koreainvestment.com:9443
+    ws_url: "wss://openapivts.koreainvestment.com:29443"
+                                  # 체결 통보 WebSocket URL (paper)
+
+# ==========================================================================
+# 1d. 체결 통보 (ExecutionEventPort 어댑터 선택) — ADR-013 신설
+# ==========================================================================
+execution_event:
+  mode: "mock"                    # 필수 | enum: mock | paper | synthetic | live
+                                  # mock      → MockExecutionEventAdapter (MockOrder 체결 in-process emit)
+                                  # paper     → KISPaperExecutionEventAdapter (H0STCNI0 WebSocket)
+                                  # synthetic → SyntheticExecutionEventAdapter (ExchangeEngine 공유)
+                                  # live      → 금지 (Phase 2D 이후)
+  reconnect_max_seconds: 60       # int | WebSocket 재연결 최대 대기 (지수 백오프 상한)
+  dedup_cache_size: 1000          # int | execution_uuid 중복 제거 LRU 캐시 크기
+  crash_replay: true              # bool | 부팅 시 최근 5분 이벤트 replay 여부
 
 # ==========================================================================
 # 2. 시세 수신 (MarketDataPort 어댑터 선택)
@@ -205,13 +221,15 @@ backtest:
 
 ## 3. 브로커 전환 — 변경 키 명세
 
-**Mock → KISPaper 전환 시 변경 키 (총 6줄)**
+**Mock → KISPaper 전환 시 변경 키 (총 8줄)**
 
 ```yaml
 # BEFORE (백테스트)
 order:
   mode: "mock"
 account:
+  mode: "mock"
+execution_event:
   mode: "mock"
 market_data:
   mode: "csv_replay"
@@ -221,11 +239,14 @@ order:
   mode: "paper"
 account:
   mode: "paper"
+execution_event:
+  mode: "paper"                   # ADR-013: KIS H0STCNI0 WebSocket
 broker:
   kis:
     app_key: "PSxxxxxxxxxxxxxxxx"
     app_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     account_no: "50123456-01"
+    hts_id: "USERID"              # 체결 통보 tr_key
 market_data:
   mode: "ws"
 ```
@@ -237,6 +258,8 @@ order:
   mode: "synthetic"
 account:
   mode: "synthetic"
+execution_event:
+  mode: "synthetic"               # ADR-013
 market_data:
   mode: "synthetic"
 synthetic:
@@ -251,6 +274,8 @@ order:
   mode: "live"            # OrderPort만 live로
 account:
   mode: "live"            # AccountPort만 live로
+execution_event:
+  mode: "live"            # ExecutionEventPort도 live로 (ADR-013)
 broker:
   kis:
     base_url: "https://openapi.koreainvestment.com:9443"
@@ -275,10 +300,13 @@ symbols:
 
 | 키 | 검사 | 실패 시 동작 |
 |-----|------|------------|
-| `order.mode` / `account.mode` | enum 강제 | 기동 중단 |
-| `order.mode == live` 또는 `account.mode == live` | Phase 1에서 금지 | 기동 중단 |
-| `order.mode == synthetic` ⇔ `account.mode == synthetic` | 쌍으로만 사용 | 기동 중단 |
-| `order.mode == mock` ⇔ `account.mode == mock` | 쌍으로만 사용 | 기동 중단 |
+| `order.mode` / `account.mode` / `execution_event.mode` | enum 강제 | 기동 중단 |
+| `*.mode == live` | Phase 1에서 금지 (3개 Port 모두) | 기동 중단 |
+| `order.mode == synthetic` ⇔ `account.mode == synthetic` ⇔ `execution_event.mode == synthetic` | 3개 쌍으로만 사용 | 기동 중단 |
+| `order.mode == mock` ⇔ `account.mode == mock` ⇔ `execution_event.mode == mock` | 3개 쌍으로만 사용 | 기동 중단 |
+| `execution_event.mode == paper` ⇒ `broker.kis.hts_id` 필수 | H0STCNI0 tr_key | 기동 중단 |
+| `execution_event.reconnect_max_seconds` | 1 ≤ x ≤ 300 | 기동 중단 |
+| `execution_event.dedup_cache_size` | 100 ≤ x ≤ 10000 | 기동 중단 |
 | `risk.max_cash_usage_ratio` | 0 < x ≤ 1 | 기동 중단 |
 | `risk.max_daily_loss_pct` | x > 0 | 기동 중단 |
 | `indicators.buffer_size` ≥ `indicators.warmup_bars` | 필수 | 기동 중단 |

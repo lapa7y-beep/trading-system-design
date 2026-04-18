@@ -79,9 +79,10 @@
 | MarketDataReceiver | WS→POLL fallback, stale 경고 타이밍 |
 | IndicatorCalculator | 200봉 입력 → SMA/RSI/MACD 정확도 (수동 계산 대조), buffer 부족 시 null |
 | StrategyEngine | ma_crossover golden cross → BUY, dead cross → SELL, cooldown 억제 |
-| RiskGuard | 7체크 개별 경계값, 여러 체크 동시 실패 시 첫 번째만 audit |
-| OrderExecutor | 멱등성 (동일 UUID 재제출), CB trip/recovery |
-| TradingFSM | 12 transition 전부, 불가능 전이 시 warn, persist 타이밍 |
+| RiskGuard | 8체크 개별 경계값, 여러 체크 동시 실패 시 첫 번째만 audit |
+| OrderExecutor | 요청 멱등성 (동일 UUID 재제출), CB trip/recovery, order_ack emit (ADR-013) |
+| **ExecutionReceiver** | **체결 멱등성(execution_uuid), PortfolioStore 갱신 (cash/positions/daily_pnl), FSM execution_event emit, crash replay, WebSocket 재연결 (ADR-013)** |
+| TradingFSM | 12 transition 전부, order_ack로 PENDING 전이 / execution_event로 완료 전이, 불가능 전이 시 warn, persist 타이밍 |
 
 #### core/risk/
 
@@ -109,10 +110,13 @@
 |---------|-------|
 | `MockOrderAdapter` | 슬리피지 계산 정확도, 수수료+세금 적용, 잔고 부족 거부, 멱등성, MockAccount와 상태 공유 |
 | `MockAccountAdapter` | get_balance/get_positions 정확도, MockOrder 체결 후 잔고 반영 확인 |
+| `MockExecutionEventAdapter` | MockEventBus 공유, 체결 이벤트 순차 emit, handler 등록/해제 (ADR-013) |
 | `KISPaperOrderAdapter` | KIS 응답 mock으로 submit/cancel/status 검증 |
-| `KISPaperAccountAdapter` | inquire-balance 응답 파싱, **reconcile 일관성 검증** (내부 DB ↔ KIS) |
+| `KISPaperAccountAdapter` | inquire-balance 응답 파싱, reconcile 일관성 검증 (내부 DB ↔ KIS) |
+| `KISPaperExecutionEventAdapter` | H0STCNI0 WebSocket 메시지 파싱, 재연결 백오프, 중복 execution_uuid 제거 (ADR-013) |
 | `SyntheticOrderAdapter` | ExchangeEngine 공유, 호가창 매칭 |
 | `SyntheticAccountAdapter` | ExchangeEngine cash/positions 조회 정확도 |
+| `SyntheticExecutionEventAdapter` | ExchangeEngine 체결 콜백 등록, 매칭 순간 emit (ADR-013) |
 | `InMemoryStorageAdapter` | upsert 동작, 트랜잭션 Lock 경합 |
 | `HistoricalClockAdapter` | advance_to 이후 now() 반영, sleep 즉시 반환 |
 | `CSVReplayAdapter` | CSV 로드, speed_multiplier=0 즉시, 1.0 실시간 |

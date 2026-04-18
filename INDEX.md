@@ -21,7 +21,7 @@
 1. `docs/what/decisions/011-phase1-scope.md` — Phase 1 범위·합격기준
 2. `docs/what/architecture/path1-design.md` — 6노드 상세 설계
 3. `graph_ir_phase1.yaml` — 노드/엣지 정식 정의
-4. `docs/what/specs/port-signatures-phase1.md` — 7 Port 시그니처
+4. `docs/what/specs/port-signatures-phase1.md` — 8 Port 시그니처
 5. `docs/what/specs/domain-types-phase1.md` — 20 타입
 6. `docs/how/methodology.md` — 방법론
 7. 이후 경로 A의 3~5 반복
@@ -66,8 +66,8 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 
 | 파일 | 내용 |
 |------|------|
-| `port-signatures-phase1.md` | Phase 1 Port 인터페이스 시그니처 (7 Port·31 메서드) |
-| `adapter-spec-phase1.md` | Phase 1 Adapter 구현 명세 (16 Adapter·실패처리·전환규칙) |
+| `port-signatures-phase1.md` | Phase 1 Port 인터페이스 시그니처 (8 Port·33 메서드) |
+| `adapter-spec-phase1.md` | Phase 1 Adapter 구현 명세 (19 Adapter·실패처리·전환규칙) |
 | `domain-types-phase1.md` | Phase 1 도메인 타입 정의 (20개·Pydantic v2) |
 | `config-schema-phase1.md` | Phase 1 설정 파일 스키마 (config.yaml·11섹션·브로커전환) |
 | `error-handling-phase1.md` | Phase 1 에러 핸들링 매트릭스 (4계층·CB·SAFE_MODE·KIS코드) |
@@ -101,7 +101,7 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 |------|------|
 | `methodology.md` | 구현 방법론 (Tracer Bullet·Walking Skeleton·17 Step) |
 | `seam-map.md` | Seam Map: 방법론 어휘 → 저장소 파일·코드 위치 매핑 |
-| `seam-classification.md` | Port별 교체 난이도 분석 (Seam 4유형·7 Port 분류) |
+| `seam-classification.md` | Port별 교체 난이도 분석 (Seam 4유형·8 Port 분류) |
 
 ---
 
@@ -121,7 +121,7 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 |------|------|-------|--------|------|
 | 00 | `step-00.md` | Walking Skeleton 단일 파일 | 기반 | 1일 |
 | 01 | `step-01.md` | 6파일 분리 | — | 0.5일 |
-| 02 | `step-02.md` | Port 추상화 도입 (7 Port ABC + DI) | 기반 | 1일 |
+| 02 | `step-02.md` | Port 추상화 도입 (8 Port ABC + DI) | 기반 | 1일 |
 | 03 | `step-03.md` | CSVReplayAdapter 구현 | 1 | 1일 |
 | 04 | `step-04.md` | IndicatorCalculator 실제 (pandas-ta SMA) | 1 | 1일 |
 | 05 | `step-05.md` | StrategyEngine 실제 (SMA 골든크로스) | 1 | 1일 |

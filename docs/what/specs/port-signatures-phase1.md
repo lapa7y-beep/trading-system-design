@@ -1,4 +1,4 @@
-# Phase 1 Port 인터페이스 시그니처 (7 Port·31 메서드)
+# Phase 1 Port 인터페이스 시그니처 (8 Port·33 메서드)
 
 > **목적**: Phase 1에서 사용하는 6개 Port의 Python ABC 시그니처, PortError 예외 계층, Adapter 매핑을 정의한다.
 > **층**: What
@@ -56,7 +56,7 @@ class StorageError(PortError):
 
 ---
 
-## 3. 7개 Port ABC
+## 3. 8개 Port ABC
 
 ### 3.1 MarketDataPort
 
@@ -518,6 +518,52 @@ class AuditPort(ABC):
 
 ---
 
+### 3.7 ExecutionEventPort
+
+> **역할**: 체결 통보 이벤트 구독 (push 수신 전용). ADR-013으로 신설.
+> **사용 노드**: ExecutionReceiver
+> **어댑터**: MockExecutionEventAdapter (mock), KISPaperExecutionEventAdapter (paper), SyntheticExecutionEventAdapter (synthetic)
+> **Phase 1 제약**: `kis_live` 어댑터는 연결 금지
+
+**왜 별도 Port인가**: 주문 요청(pull, OrderPort)과 체결 통보(push, ExecutionEventPort)는 시간 모델이 다르다.
+KIS는 체결 통보 전용 WebSocket(H0STCNI0)을 별도 엔드포인트로 제공한다.
+ATLAS도 이 구조에 맞춰 요청(OrderExecutor)과 수신(ExecutionReceiver)을 분리한다.
+
+```python
+# ports/execution_event_port.py
+from abc import ABC, abstractmethod
+from typing import Callable, Awaitable
+
+from domain.order import ExecutionEvent
+
+
+ExecutionHandler = Callable[[ExecutionEvent], Awaitable[None]]
+
+
+class ExecutionEventPort(ABC):
+
+    @abstractmethod
+    async def subscribe(self, handler: ExecutionHandler) -> None:
+        """체결 통보 구독.
+
+        증권사가 체결 발생 시 handler를 호출한다.
+        Adapter는 내부적으로 WebSocket 연결 + 재연결 + 이벤트 dispatch 담당.
+
+        Raises:
+            AuthError: 인증 실패 (KIS approval_key 오류 등)
+            ConnectionError: 연결 실패
+        """
+
+    @abstractmethod
+    async def unsubscribe(self) -> None:
+        """구독 해제. 프로세스 shutdown 시 호출.
+
+        진행 중인 이벤트 핸들러는 완료될 때까지 대기.
+        """
+```
+
+---
+
 ## 4. Port → Adapter 매핑 요약
 
 | Port | mock 어댑터 | Phase 1 어댑터 | Phase 2+ |
@@ -525,12 +571,13 @@ class AuditPort(ABC):
 | MarketDataPort | CSVReplayAdapter, SyntheticMarketAdapter | KISWebSocketAdapter + KISRestAdapter | - |
 | OrderPort | MockOrderAdapter, SyntheticOrderAdapter | KISPaperOrderAdapter | KISLiveOrderAdapter |
 | AccountPort | MockAccountAdapter, SyntheticAccountAdapter | KISPaperAccountAdapter | KISLiveAccountAdapter |
+| **ExecutionEventPort** | MockExecutionEventAdapter, SyntheticExecutionEventAdapter | KISPaperExecutionEventAdapter | KISLiveExecutionEventAdapter |
 | StoragePort | InMemoryStorageAdapter | PostgresStorageAdapter | - |
 | ClockPort | HistoricalClockAdapter | WallClockAdapter | - |
 | StrategyRuntimePort | - | FileSystemStrategyLoader | - |
 | AuditPort | StdoutAuditAdapter | PostgresAuditAdapter | - |
 
-**전환 방법**: `config.yaml`의 `order.mode` + `account.mode` (필요시 다른 증권사 조합 가능) 변경 → Adapter 팩토리가 자동 선택.
+**전환 방법**: `config.yaml`의 `order.mode` + `account.mode` + `execution_event.mode` 변경 → Adapter 팩토리가 자동 선택.
 
 ---
 
@@ -543,6 +590,7 @@ ports/
 ├── market_data_port.py        ← MarketDataPort ABC
 ├── order_port.py              ← OrderPort ABC      (BrokerPort 분리 결과)
 ├── account_port.py            ← AccountPort ABC    (BrokerPort 분리 결과)
+├── execution_event_port.py    ← ExecutionEventPort ABC (ADR-013 신설)
 ├── storage_port.py            ← StoragePort ABC
 ├── clock_port.py              ← ClockPort ABC
 ├── strategy_runtime_port.py   ← StrategyRuntimePort ABC
@@ -562,6 +610,10 @@ adapters/
 │   ├── mock_account.py        ← MockAccountAdapter
 │   ├── kis_paper_account.py   ← KISPaperAccountAdapter
 │   └── synthetic_account.py   ← SyntheticAccountAdapter
+├── execution_event/           ← ADR-013 신설
+│   ├── mock_execution_event.py       ← MockExecutionEventAdapter
+│   ├── kis_paper_execution_event.py  ← KISPaperExecutionEventAdapter (H0STCNI0)
+│   └── synthetic_execution_event.py  ← SyntheticExecutionEventAdapter
 ├── storage/
 │   ├── postgres_storage.py    ← PostgresStorageAdapter
 │   └── in_memory_storage.py   ← InMemoryStorageAdapter
@@ -583,7 +635,8 @@ adapters/
 |------|------|------|
 | 2026-04-17 | v1.0 | Phase 1 최초 작성. 6개 Port ABC + PortError 계층 통합. |
 | 2026-04-17 | v1.1 | BrokerPort 분리 → OrderPort + AccountPort. 단일 책임 원칙 적용. KIS API 구조(주문 API와 계좌 API 분리)와 정합. 7개 Port·31 메서드. |
+| 2026-04-17 | v1.2 | ExecutionEventPort 신설 (ADR-013). OrderExecutor의 체결 통보 수신 책임을 ExecutionReceiver로 분해. KIS H0STCNI0 WebSocket을 별도 Port로 명시. 8개 Port·33 메서드. |
 
 ---
 
-*Phase 1 Port ABC 통합 시그니처 — 7 Ports | 31 메서드 | 1 예외 계층*
+*Phase 1 Port ABC 통합 시그니처 — 8 Ports | 33 메서드 | 1 예외 계층*

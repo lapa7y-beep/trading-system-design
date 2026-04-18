@@ -76,6 +76,14 @@ ports:
       primary: PostgresAuditAdapter
       mock: StdoutAuditAdapter             # 테스트용
 
+  ExecutionEventPort:                       # ADR-013 신설: 체결 통보 push 수신
+    methods: [subscribe, unsubscribe]
+    adapters:
+      mock: MockExecutionEventAdapter
+      synthetic: SyntheticExecutionEventAdapter
+      kis_paper: KISPaperExecutionEventAdapter
+      kis_live: KISLiveExecutionEventAdapter   # Phase 2 진입까지 사용 금지
+
 # ---------------------------------------------------------------------------
 # Shared Stores — Path 간 간접 연결 지점
 # ---------------------------------------------------------------------------
@@ -201,12 +209,13 @@ nodes:
       - edge: approved_signal
         from: RiskGuard
     outputs:
-      - edge: execution_event
+      - edge: order_ack
         type: Event
         to: TradingFSM
-      - edge: execution_event
+      - edge: order_audit
         type: AuditTrace
         to: AuditStore
+    responsibility: "주문 요청만. 체결 수신은 ExecutionReceiver 담당 (ADR-013)"
     idempotency:
       key: order_uuid
       enforce: true
@@ -218,14 +227,40 @@ nodes:
       max_failures: 3
       on_trip: "emit FSM event BROKER_FAILURE → SAFE_MODE"
 
+  ExecutionReceiver:                             # ADR-013 신설: 체결 통보 수신
+    path: path1
+    category: core
+    runMode: event
+    ports_used: [ExecutionEventPort, StoragePort, AuditPort]
+    inputs:
+      - edge: execution_event
+        from: ExecutionEventPort
+        role: DataPipe
+    outputs:
+      - edge: execution_event
+        type: Event
+        to: TradingFSM
+      - edge: execution_event
+        type: AuditTrace
+        to: AuditStore
+      - edge: portfolio_update
+        type: StateTransition
+        to: PortfolioStore
+    responsibility: "체결 통보 구독, trades INSERT, PortfolioStore(cash/positions) 갱신, TradingFSM에 event emit"
+    idempotency:
+      key: execution_uuid
+      enforce: true
+
   TradingFSM:
     path: path1
     category: core
     runMode: stateful_service
     ports_used: [StoragePort, AuditPort, AccountPort]
     inputs:
-      - edge: execution_event
+      - edge: order_ack
         from: OrderExecutor
+      - edge: execution_event
+        from: ExecutionReceiver
       - edge: halt_signal
         from: cli_halt
         role: Command
@@ -252,7 +287,7 @@ nodes:
       - { from: SAFE_MODE,      to: IDLE,          trigger: manual_resume }
 
 # ---------------------------------------------------------------------------
-# Edges — 약 12개
+# Edges — 16개 (ADR-013: ExecutionReceiver 분리로 e10/e11 재배치, e15/e16 신설)
 # ---------------------------------------------------------------------------
 edges:
   - { id: e01, from: MarketDataPort,      to: MarketDataReceiver,   type: DataFlow,       role: DataPipe,    name: raw_tick }
@@ -264,11 +299,15 @@ edges:
   - { id: e07, from: RiskGuard,           to: OrderExecutor,        type: DataFlow,       role: DataPipe,    name: approved_signal }
   - { id: e08, from: RiskGuard,           to: AuditStore,           type: Event,          role: AuditTrace,  name: rejection_event }
   - { id: e09, from: OrderExecutor,       to: OrderPort,            type: DataFlow,       role: DataPipe,    name: order_request }
-  - { id: e10, from: OrderExecutor,       to: TradingFSM,           type: Event,          role: EventNotify, name: execution_event }
+  - { id: e10, from: OrderExecutor,       to: TradingFSM,           type: Event,          role: EventNotify, name: order_ack }
   - { id: e11, from: OrderExecutor,       to: AuditStore,           type: Event,          role: AuditTrace,  name: order_audit }
   - { id: e12, from: TradingFSM,          to: PortfolioStore,       type: StateTransition, role: DataPipe,   name: state_transition }
   - { id: e13, from: TradingFSM,          to: AuditStore,           type: StateTransition, role: AuditTrace, name: fsm_audit }
   - { id: e14, from: cli_halt,            to: TradingFSM,           type: Event,          role: Command,     name: halt_signal }
+  - { id: e15, from: ExecutionEventPort,  to: ExecutionReceiver,    type: DataFlow,       role: DataPipe,    name: execution_event }
+  - { id: e16, from: ExecutionReceiver,   to: TradingFSM,           type: Event,          role: EventNotify, name: execution_event }
+  - { id: e17, from: ExecutionReceiver,   to: PortfolioStore,       type: StateTransition, role: DataPipe,   name: portfolio_update }
+  - { id: e18, from: ExecutionReceiver,   to: AuditStore,           type: Event,          role: AuditTrace,  name: execution_audit }
 
 # ---------------------------------------------------------------------------
 # Domain Types — 20개 (전체 정의는 docs/what/specs/domain-types-phase1.md 참조)
@@ -338,13 +377,13 @@ acceptance_criteria:
 # 수치 체크섬 — 활성 문서 일관성 검증용
 # ---------------------------------------------------------------------------
 expected_counts:
-  nodes: 6
-  ports: 7              # +1: BrokerPort 분리 → OrderPort + AccountPort
+  nodes: 7              # +1: ExecutionReceiver (ADR-013)
+  ports: 8              # +1: ExecutionEventPort (ADR-013)
   shared_stores: 3
-  edges: 14            # cli_halt 포함 (Port 라벨만 갱신)
+  edges: 18             # +4: e15 Port→ExecReceiver, e16 execution_event, e17 portfolio_update, e18 audit
   domain_types: 20
   db_tables: 6
-  adapters_primary: 11  # +3: Mock/KISPaper/Synthetic 각각 Order+Account로 분리
+  adapters_primary: 14  # +3: Execution 3 modes (Mock/KISPaper/Synthetic)
   pre_order_checks: 8
   fsm_states: 6
   fsm_transitions: 12

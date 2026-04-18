@@ -1,11 +1,11 @@
-# Phase 1 Adapter 구현 명세 (14 Adapter·실패처리·전환규칙)
+# Phase 1 Adapter 구현 명세 (19 Adapter·실패처리·전환규칙)
 
-> **목적**: Phase 1에서 구현할 14개 Adapter의 내부 동작, 의존성, 실패 처리, 전환 규칙을 단일 문서로 정의.
+> **목적**: Phase 1에서 구현할 19개 Adapter의 내부 동작, 의존성, 실패 처리, 전환 규칙을 단일 문서로 정의.
 > **층**: What
-> **상태**: Phase 1 확정 (BrokerPort 분리 반영)
+> **상태**: Phase 1 확정 (ADR-013: ExecutionEventPort 신설 반영)
 > **최종 수정**: 2026-04-17
-> **구현 여정**: Step 02(Port+DI), 03(CSVReplay), 07(MockOrder/Account), 09(Postgres), 11b(KISPaper)에서 참조. ADR-012 §6 참조.
-> **선행 문서**: `docs/what/specs/port-signatures-phase1.md`, `docs/what/specs/config-schema-phase1.md`, `graph_ir_phase1.yaml`
+> **구현 여정**: Step 02(Port+DI), 03(CSVReplay), 07(MockOrder/Account/ExecEvent), 09(Postgres), 11b(KISPaper)에서 참조. ADR-012 §6, ADR-013 참조.
+> **선행 문서**: `docs/what/specs/port-signatures-phase1.md`, `docs/what/specs/config-schema-phase1.md`, `graph_ir_phase1.yaml`, `docs/what/decisions/013-atlas-driver-broker-boundary.md`
 > **구현 위치**: `adapters/*/`
 
 ## 1. Adapter 설계 원칙
@@ -20,7 +20,7 @@
 
 ---
 
-## 2. Adapter 전체 목록 (16개)
+## 2. Adapter 전체 목록 (19개)
 
 | # | Port | Adapter | 모드 | 외부 의존 |
 |---|------|---------|------|----------|
@@ -34,15 +34,18 @@
 | 8 | AccountPort | **MockAccountAdapter** | mock | 없음 (MockOrder와 in-process 상태 공유) |
 | 9 | AccountPort | **KISPaperAccountAdapter** | paper | KIS REST API, `httpx` |
 | 10 | AccountPort | **SyntheticAccountAdapter** | synthetic | 없음 (ExchangeEngine 공유) |
-| 11 | StoragePort | **PostgresStorageAdapter** | primary | PostgreSQL, `asyncpg` |
-| 12 | StoragePort | **InMemoryStorageAdapter** | test | 없음 |
-| 13 | ClockPort | **WallClockAdapter** | live/paper | OS 시계 |
-| 14 | ClockPort | **HistoricalClockAdapter** | backtest | 없음 (내부 시뮬 시계) |
-| 15 | StrategyRuntimePort | **FileSystemStrategyLoader** | primary | 파일시스템, `importlib` |
-| 16 | AuditPort | **PostgresAuditAdapter** | primary | PostgreSQL, `asyncpg` |
-| 17 | AuditPort | **StdoutAuditAdapter** | test | 없음 |
+| 11 | ExecutionEventPort | **MockExecutionEventAdapter** | mock | 없음 (MockOrder 체결 in-process emit) |
+| 12 | ExecutionEventPort | **KISPaperExecutionEventAdapter** | paper | KIS WebSocket (H0STCNI0), `websockets` |
+| 13 | ExecutionEventPort | **SyntheticExecutionEventAdapter** | synthetic | 없음 (ExchangeEngine 체결 event) |
+| 14 | StoragePort | **PostgresStorageAdapter** | primary | PostgreSQL, `asyncpg` |
+| 15 | StoragePort | **InMemoryStorageAdapter** | test | 없음 |
+| 16 | ClockPort | **WallClockAdapter** | live/paper | OS 시계 |
+| 17 | ClockPort | **HistoricalClockAdapter** | backtest | 없음 (내부 시뮬 시계) |
+| 18 | StrategyRuntimePort | **FileSystemStrategyLoader** | primary | 파일시스템, `importlib` |
+| 19 | AuditPort | **PostgresAuditAdapter** | primary | PostgreSQL, `asyncpg` |
+| 20 | AuditPort | **StdoutAuditAdapter** | test | 없음 |
 
-> **참고**: 표는 17행이지만 **Adapter 종류는 16개**. Phase 2 예약은 `KISLiveOrderAdapter` + `KISLiveAccountAdapter` 2개 별도.
+> **참고**: 표는 20행이지만 **Adapter 종류는 19개**. Phase 2 예약: `KISLiveOrderAdapter` + `KISLiveAccountAdapter` + `KISLiveExecutionEventAdapter` 3개 별도.
 
 ---
 
@@ -425,6 +428,110 @@ from atlas.exchange.engine import ExchangeEngine
 
 ---
 
+## 5c. ExecutionEventPort 어댑터 (3개) — ADR-013 신설
+
+### 5c.1 MockExecutionEventAdapter
+
+**역할**: 백테스트·단위 테스트용. MockOrderAdapter가 체결 처리할 때 in-process 이벤트 emit.
+
+**핵심 동작**
+- `subscribe(handler)`: handler를 내부 리스트에 등록
+- `unsubscribe()`: 등록 해제
+- MockOrderAdapter가 OrderStatus.FILLED 생성 시 `_shared_event_bus.emit(execution_event)` → 등록된 handler 호출
+- **공유 이벤트 버스**: MockOrderAdapter와 MockExecutionEventAdapter가 같은 `MockEventBus` 인스턴스 공유
+
+**의존성**
+```python
+from atlas.adapters.execution_event.mock_execution_event import MockEventBus
+```
+
+**config 사용 키**
+- 없음
+
+**상태**
+- `_handlers: list[ExecutionHandler]` — 등록된 handler 목록
+- `_bus: MockEventBus` — MockOrderAdapter와 공유
+
+**실패 처리**
+| 상황 | 동작 |
+|------|------|
+| handler가 예외 발생 | 로깅만, 이벤트 버스 정상 유지 |
+| 등록 전 이벤트 수신 | 버퍼링 안 함 (드롭) |
+
+---
+
+### 5c.2 KISPaperExecutionEventAdapter
+
+**역할**: KIS 모의투자 체결 통보 WebSocket(H0STCNI0) 구독. 실제 체결 통보를 받아 ATLAS로 전달.
+
+**핵심 동작**
+- `subscribe(handler)`:
+  1. KIS approval_key 발급 (`POST /oauth2/Approval`)
+  2. WebSocket 연결 (`wss://openapivts.koreainvestment.com:29443`)
+  3. TR 등록 메시지 전송 (tr_id=`H0STCNI0`, tr_key=HTS ID)
+  4. 백그라운드 task: 수신 루프 → 파싱 → ExecutionEvent 생성 → handler 호출
+- `unsubscribe()`: WebSocket close, task cancel
+- 재연결: 끊김 시 지수 백오프 (1s, 2s, 4s, ... max 60s)
+- 멱등성: execution_uuid 기준 중복 이벤트 무시 (KIS가 중복 전송하는 경우 대비)
+
+**의존성**
+```python
+import websockets
+import httpx  # approval_key 발급용
+```
+
+**config 사용 키**
+- `broker.kis.app_key / app_secret / hts_id / ws_url`
+- `execution_event.reconnect_max_seconds` (기본 60)
+
+**상태**
+- `_ws: websockets.WebSocketClientProtocol | None`
+- `_task: asyncio.Task | None`
+- `_seen_uuids: LRUCache[UUID]` — 중복 제거용 (최근 1000개)
+
+**실패 처리**
+| 상황 | 동작 |
+|------|------|
+| approval_key 발급 실패 | `AuthError` raise |
+| WebSocket 연결 실패 | `ConnectionError` raise, 호출자가 재시도 결정 |
+| 파싱 실패 | 로깅만, 다음 메시지 진행 |
+| 중복 execution_uuid | 무시 (audit에 기록) |
+| 5초 무응답 | heartbeat ping, 10초 무응답 시 재연결 |
+
+**주의**: KIS `H0STCNI0`은 체결 + 접수 + 거부 모두 포함. adapter 내부에서 체결(execution)만 필터링하여 handler 호출. 접수·거부는 OrderPort 응답으로 처리.
+
+---
+
+### 5c.3 SyntheticExecutionEventAdapter
+
+**역할**: 가상거래소(ExchangeEngine) 체결 결과를 이벤트로 emit. SyntheticOrderAdapter와 같은 ExchangeEngine 공유.
+
+**핵심 동작**
+- `subscribe(handler)`: ExchangeEngine에 체결 콜백 등록
+- `unsubscribe()`: 콜백 해제
+- ExchangeEngine 내부 매칭 엔진이 체결 발생 시 → ExecutionEvent 생성 → handler 호출
+
+**의존성**
+```python
+from atlas.exchange.engine import ExchangeEngine
+```
+
+**config 사용 키**
+- 없음 (ExchangeEngine이 모든 설정 소유)
+
+**상태**
+- `_engine: ExchangeEngine` — SyntheticOrder/Market/Account와 공유
+
+**실패 처리**
+| 상황 | 동작 |
+|------|------|
+| handler 예외 | 로깅만, ExchangeEngine 정상 유지 |
+| ExchangeEngine 미초기화 | `ConnectionError` raise |
+
+**주의**: ExchangeEngine의 `register_fill_callback()`에 등록. ExchangeEngine은 매칭 직후 callback을 동기 호출 (asyncio.create_task로 비동기 전환).
+
+---
+
 ## 6. StoragePort 어댑터 (2개)
 
 ### 6.1 PostgresStorageAdapter
@@ -671,18 +778,43 @@ def create_account_port(config: Config, exchange: ExchangeEngine | None = None) 
         raise ValueError(f"Unknown account.mode: {config.account.mode}")
 
 
+def create_execution_event_port(config: Config, exchange: ExchangeEngine | None = None,
+                                  mock_bus: MockEventBus | None = None) -> ExecutionEventPort:
+    """ADR-013: 체결 통보 push 수신 전용."""
+    if config.execution_event.mode == ExecutionEventMode.MOCK:
+        if mock_bus is None:
+            raise ValueError("mock 모드는 MockEventBus 주입 필요 (MockOrderAdapter와 공유)")
+        return MockExecutionEventAdapter(mock_bus)
+    elif config.execution_event.mode == ExecutionEventMode.KIS_PAPER:
+        return KISPaperExecutionEventAdapter(config.broker.kis, config.execution_event.reconnect_max_seconds)
+    elif config.execution_event.mode == ExecutionEventMode.SYNTHETIC:
+        if exchange is None:
+            raise ValueError("synthetic 모드는 ExchangeEngine 주입 필요")
+        return SyntheticExecutionEventAdapter(exchange)
+    elif config.execution_event.mode == ExecutionEventMode.KIS_LIVE:
+        raise ValueError("kis_live 는 Phase 2D 까지 사용 금지")
+    else:
+        raise ValueError(f"Unknown execution_event.mode: {config.execution_event.mode}")
+
+
 def create_all_ports(config: Config) -> dict:
-    """Boot 시퀀스 — synthetic 모드는 ExchangeEngine 먼저 생성 후 3 Adapter에 주입."""
+    """Boot 시퀀스 — synthetic 모드는 ExchangeEngine 먼저 생성 후 모든 Adapter에 주입.
+    mock 모드는 MockEventBus 먼저 생성 후 MockOrder/MockExecutionEvent에 주입."""
     exchange = None
-    if any(m == 'synthetic' for m in [config.market_data.mode, config.order.mode, config.account.mode]):
-        if not all(m == 'synthetic' for m in [config.market_data.mode, config.order.mode, config.account.mode]):
-            raise ValueError("synthetic 모드는 market_data/order/account 모두 synthetic이어야 한다")
+    mock_bus = None
+    modes = [config.market_data.mode, config.order.mode, config.account.mode, config.execution_event.mode]
+    if any(m == 'synthetic' for m in modes):
+        if not all(m == 'synthetic' for m in modes):
+            raise ValueError("synthetic 모드는 market_data/order/account/execution_event 모두 synthetic이어야 한다")
         exchange = ExchangeEngine(config.synthetic, seed=config.synthetic.seed)
+    if any(m == 'mock' for m in [config.order.mode, config.execution_event.mode]):
+        mock_bus = MockEventBus.shared()
 
     return {
         'market_data': create_market_data_port(config, exchange),
-        'order': create_order_port(config, exchange),
+        'order': create_order_port(config, exchange, mock_bus),
         'account': create_account_port(config, exchange),
+        'execution_event': create_execution_event_port(config, exchange, mock_bus),
         # ... storage, clock, audit, strategy_runtime
     }
 ```
@@ -700,7 +832,8 @@ def create_all_ports(config: Config) -> dict:
 | 2026-04-17 | v1.2 | 3차 검증: CSVReplayAdapter unsubscribe 설명 추가. |
 | 2026-04-17 | v1.3 | SyntheticMarketAdapter, SyntheticOrderAdapter, SyntheticAccountAdapter 추가 (가상거래소 연동). |
 | 2026-04-17 | v2.0 | **BrokerPort 분리** → OrderPort + AccountPort. Mock/KISPaper/Synthetic 각각 Order판/Account판 6개로 분리. 12 → 16 Adapters. 단일 책임 원칙 적용. |
+| 2026-04-17 | v2.1 | **ADR-013 적용**: ExecutionEventPort 신설. Mock/KISPaper/Synthetic 각각 ExecutionEvent 어댑터 3개 추가. 16 → 19 Adapters. OrderExecutor의 체결 통보 수신 책임 분해. |
 
 ---
 
-*Phase 1 Adapter 구현 명세 — 16 Adapters | 7 Ports | 3 기본 경로 (백테스트/모의투자/가상검증)*
+*Phase 1 Adapter 구현 명세 — 19 Adapters | 8 Ports | 3 기본 경로 (백테스트/모의투자/가상검증)*
