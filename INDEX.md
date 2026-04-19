@@ -82,6 +82,9 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 
 | 파일 | 내용 |
 |------|------|
+| `numeric-pipeline.md` | **수치 파이프라인 — Phase 1 활성** (7노드·18엣지·8포트·FSM 6상태) |
+| `knowledge-pipeline.md` | **지식 파이프라인 — Phase 2+ 자리예약** (KnowledgePort 시그니처만 확정) |
+| `strategy-pipeline.md` | **전략 파이프라인** (Phase 1 strategies/*.py + Phase 2+ 자동생성 확장) |
 | `data-collection.md` | 시세 데이터 수집 파이프라인 (정형·비정형·CSV) |
 | `backtesting.md` | 백테스트 파이프라인 (이중 엔진·성과지표·전환기준) |
 
@@ -158,3 +161,11 @@ Run 층  (docs/run/)   — 지금 무엇을 하는가. 매일 한 Step.
 | `phase2plus/` | Phase 2 이후 복원 예정 (Path 3~6, 고급 Risk 등) |
 | `phase3/` | Phase 3 LLM·지식그래프 관련 |
 | `patches/` | 반영 완료된 델타 문서 (재사용 금지) |
+
+---
+
+## 변경 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2026-04-19 | pipelines/ 3개 신규: numeric / knowledge / strategy. SSoT(graph_ir_phase1.yaml) 기반 정확 반영. |
